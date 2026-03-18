@@ -1,0 +1,2592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>四五快读 - 小猪猪学中文</title>
+<style>
+/* ===== RESET & BASE ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  height: 100%;
+  font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: #f0f4ff;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== CSS VARIABLES ===== */
+:root {
+  --green: #58cc02;
+  --green-dark: #46a302;
+  --blue: #1cb0f6;
+  --blue-dark: #0995d6;
+  --orange: #ff9600;
+  --red: #ff4b4b;
+  --purple: #ce82ff;
+  --gold: #ffc800;
+  --gray-light: #e5e5e5;
+  --gray: #afafaf;
+  --gray-dark: #777;
+  --bg: #f0f4ff;
+  --white: #ffffff;
+  --text: #3c3c3c;
+  --shadow: 0 4px 0;
+  --radius: 16px;
+}
+
+/* ===== SCREENS ===== */
+.screen {
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0; left: 0;
+  flex-direction: column;
+}
+.screen.active { display: flex; }
+
+/* ===== HOME SCREEN (Study Path) ===== */
+#homeScreen {
+  background: linear-gradient(180deg, #e8f5e9 0%, #f0f4ff 30%);
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 8px;
+  background: var(--white);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  z-index: 10;
+}
+
+.home-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.streak-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #fff3e0;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--orange);
+}
+
+.xp-bar-container {
+  padding: 8px 20px;
+  background: var(--white);
+}
+.xp-bar {
+  height: 8px;
+  background: var(--gray-light);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--orange));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+.xp-label {
+  font-size: 11px;
+  color: var(--gray-dark);
+  text-align: right;
+  margin-top: 2px;
+}
+
+/* Section Header in path */
+.section-header {
+  text-align: center;
+  padding: 20px 0 8px;
+}
+.section-header h2 {
+  display: inline-block;
+  background: var(--green);
+  color: white;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 8px 24px;
+  border-radius: 20px;
+  box-shadow: var(--shadow) var(--green-dark);
+}
+
+/* Study Path */
+.path-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 0 100px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.path-row {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+  position: relative;
+}
+
+.path-node {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: white;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s;
+  border: none;
+  outline: none;
+}
+.path-node:active { transform: scale(0.92); }
+
+.path-node.completed {
+  background: var(--gold);
+  box-shadow: var(--shadow) #d4a600;
+}
+.path-node.current {
+  background: var(--green);
+  box-shadow: var(--shadow) var(--green-dark);
+  animation: pulse 2s infinite;
+}
+.path-node.locked {
+  background: var(--gray-light);
+  box-shadow: var(--shadow) #ccc;
+  color: var(--gray);
+  cursor: default;
+}
+
+.path-node .stars {
+  position: absolute;
+  bottom: -6px;
+  display: flex;
+  gap: 2px;
+}
+.path-node .stars span {
+  font-size: 12px;
+}
+
+.node-label {
+  font-size: 12px;
+  color: var(--gray-dark);
+  text-align: center;
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+/* Path connector line */
+.path-connector {
+  width: 4px;
+  height: 24px;
+  background: var(--gray-light);
+  margin: 0 auto;
+  border-radius: 2px;
+}
+.path-connector.done {
+  background: var(--gold);
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: var(--shadow) var(--green-dark), 0 0 0 0 rgba(88,204,2,0.4); }
+  50% { box-shadow: var(--shadow) var(--green-dark), 0 0 0 12px rgba(88,204,2,0); }
+}
+
+/* ===== LESSON SCREEN ===== */
+#lessonScreen {
+  background: var(--white);
+}
+
+.lesson-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.lesson-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--gray-light);
+  background: none;
+  font-size: 18px;
+  color: var(--gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.lesson-progress {
+  flex: 1;
+  height: 12px;
+  background: var(--gray-light);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.lesson-progress-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.lesson-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+  overflow-y: auto;
+}
+
+/* ===== MASCOT ===== */
+.mascot {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 12px;
+}
+.mascot-small {
+  width: 64px;
+  height: 64px;
+}
+
+/* ===== EXERCISE: CHARACTER INTRO ===== */
+.intro-card {
+  text-align: center;
+  animation: fadeInUp 0.4s ease;
+}
+.intro-char {
+  font-size: 120px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.1;
+  margin: 8px 0;
+}
+.intro-pinyin {
+  font-size: 22px;
+  color: var(--blue);
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+.intro-meaning {
+  font-size: 20px;
+  color: var(--gray-dark);
+  margin-bottom: 4px;
+}
+.intro-emoji {
+  font-size: 64px;
+  margin: 12px 0;
+}
+.tap-hint {
+  font-size: 14px;
+  color: var(--gray);
+  margin-top: 8px;
+  animation: fadeInOut 2s infinite;
+}
+
+/* ===== EXERCISE: MULTIPLE CHOICE ===== */
+.question-text {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+  text-align: center;
+  margin: 16px 0;
+}
+.question-prompt {
+  font-size: 18px;
+  color: var(--gray-dark);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 340px;
+}
+.choice-btn {
+  width: 100%;
+  padding: 16px 20px;
+  font-size: 24px;
+  font-weight: 700;
+  background: var(--white);
+  border: 2px solid var(--gray-light);
+  border-radius: var(--radius);
+  box-shadow: 0 3px 0 var(--gray-light);
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text);
+  text-align: center;
+}
+.choice-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--gray-light);
+}
+.choice-btn.correct {
+  border-color: var(--green);
+  background: #e8f5e9;
+  box-shadow: 0 3px 0 var(--green-dark);
+  color: var(--green-dark);
+}
+.choice-btn.wrong {
+  border-color: var(--red);
+  background: #ffebee;
+  box-shadow: 0 3px 0 #d32f2f;
+  color: var(--red);
+}
+
+/* Emoji choices (for picture matching) */
+.choices-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+  max-width: 340px;
+}
+.choice-emoji-btn {
+  padding: 20px;
+  font-size: 48px;
+  background: var(--white);
+  border: 3px solid var(--gray-light);
+  border-radius: var(--radius);
+  box-shadow: 0 3px 0 var(--gray-light);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.choice-emoji-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--gray-light);
+}
+.choice-emoji-btn.correct {
+  border-color: var(--green);
+  background: #e8f5e9;
+}
+.choice-emoji-btn.wrong {
+  border-color: var(--red);
+  background: #ffebee;
+}
+
+/* ===== EXERCISE: WORD MATCH ===== */
+.word-display {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--text);
+  text-align: center;
+  margin: 16px 0;
+  letter-spacing: 4px;
+}
+
+/* ===== BOTTOM ACTION BAR ===== */
+.action-bar {
+  padding: 16px 24px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  background: var(--white);
+}
+
+.action-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 18px;
+  font-weight: 800;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.action-btn:active {
+  transform: translateY(3px);
+}
+
+.btn-green {
+  background: var(--green);
+  color: white;
+  box-shadow: 0 4px 0 var(--green-dark);
+}
+.btn-green:active { box-shadow: 0 1px 0 var(--green-dark); }
+
+.btn-blue {
+  background: var(--blue);
+  color: white;
+  box-shadow: 0 4px 0 var(--blue-dark);
+}
+
+.btn-disabled {
+  background: var(--gray-light);
+  color: var(--gray);
+  box-shadow: 0 4px 0 #ccc;
+  pointer-events: none;
+}
+
+/* ===== FEEDBACK BANNER ===== */
+.feedback-bar {
+  display: none;
+  padding: 16px 24px;
+  align-items: center;
+  gap: 12px;
+}
+.feedback-bar.show { display: flex; }
+.feedback-bar.correct-fb {
+  background: #e8f5e9;
+}
+.feedback-bar.wrong-fb {
+  background: #ffebee;
+}
+.feedback-icon { font-size: 28px; }
+.feedback-text {
+  font-size: 18px;
+  font-weight: 700;
+}
+.feedback-bar.correct-fb .feedback-text { color: var(--green-dark); }
+.feedback-bar.wrong-fb .feedback-text { color: var(--red); }
+
+/* ===== COMPLETE SCREEN ===== */
+#completeScreen {
+  background: linear-gradient(180deg, #fff9c4 0%, #ffffff 50%);
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+
+.complete-stars {
+  font-size: 48px;
+  margin: 16px 0;
+  animation: bounceIn 0.6s ease;
+}
+.complete-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.complete-subtitle {
+  font-size: 16px;
+  color: var(--gray-dark);
+  margin-bottom: 24px;
+}
+.complete-xp {
+  display: inline-block;
+  background: var(--gold);
+  color: white;
+  font-size: 20px;
+  font-weight: 800;
+  padding: 8px 24px;
+  border-radius: 20px;
+  margin-bottom: 32px;
+}
+
+/* ===== CONFETTI ===== */
+.confetti-container {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 999;
+}
+.confetti-piece {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ===== AUDIO BUTTON ===== */
+.audio-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--blue);
+  border: none;
+  box-shadow: 0 3px 0 var(--blue-dark);
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8px auto;
+  transition: transform 0.15s;
+}
+.audio-btn:active {
+  transform: translateY(2px) scale(0.95);
+  box-shadow: 0 1px 0 var(--blue-dark);
+}
+
+/* ===== READING / STORY SCREEN ===== */
+#readingScreen { background: #fffde7; }
+.reading-header {
+  display: flex; align-items: center; padding: 12px 16px; gap: 12px;
+  background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); flex-shrink: 0;
+}
+.reading-title { flex: 1; font-size: 16px; font-weight: 800; color: var(--text); text-align: center; }
+.story-scroll { flex: 1; overflow-y: auto; padding: 20px 24px 12px; -webkit-overflow-scrolling: touch; }
+.story-title { font-size: 22px; font-weight: 900; text-align: center; margin-bottom: 20px; color: var(--text); }
+.story-body { font-size: 22px; line-height: 2.2; color: var(--text); }
+.story-body p { margin-bottom: 12px; }
+.sentence-item { font-size: 22px; line-height: 2; margin-bottom: 12px; padding: 10px 14px;
+  background: white; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+.sentence-num { color: var(--blue); font-weight: 800; margin-right: 6px; }
+.story-char { display: inline; }
+.story-char.highlight { background: #ffe082; border-radius: 3px; }
+.recording-bar {
+  flex-shrink: 0; padding: 12px 20px 20px; background: white;
+  border-top: 2px solid var(--gray-light);
+}
+.rec-controls { display: flex; gap: 14px; justify-content: center; align-items: center; margin: 8px 0; }
+.rec-btn {
+  width: 58px; height: 58px; border-radius: 50%; border: none; font-size: 26px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; color: white;
+}
+.rec-btn:active { transform: scale(0.9); }
+.rec-btn:disabled { opacity: 0.35; pointer-events: none; }
+.rec-btn.btn-listen { background: var(--blue); box-shadow: 0 3px 0 var(--blue-dark); }
+.rec-btn.btn-record { background: var(--red); box-shadow: 0 3px 0 #cc0000; }
+.rec-btn.btn-record.recording { background: #880000; animation: recPulse 1s infinite; }
+.rec-btn.btn-play { background: var(--green); box-shadow: 0 3px 0 var(--green-dark); }
+.rec-btn.btn-save { background: var(--gold); box-shadow: 0 3px 0 #c49a00; }
+@keyframes recPulse { 0%,100%{box-shadow:0 3px 0 #cc0000,0 0 0 0 rgba(255,75,75,0.5)} 50%{box-shadow:0 3px 0 #cc0000,0 0 0 10px rgba(255,75,75,0)} }
+.rec-status { text-align: center; font-size: 13px; color: var(--gray-dark); min-height: 18px; }
+.rec-timer { text-align: center; font-size: 24px; font-weight: 800; color: var(--red); min-height: 32px; }
+.saved-list { margin-top: 10px; max-height: 120px; overflow-y: auto; }
+.saved-item {
+  display: flex; align-items: center; gap: 10px; padding: 7px 0;
+  border-bottom: 1px solid #f0f0f0; font-size: 13px; color: var(--gray-dark);
+}
+.saved-play-btn {
+  padding: 4px 10px; background: var(--blue); color: white;
+  border: none; border-radius: 8px; font-size: 12px; cursor: pointer;
+}
+/* complete screen read-story btn */
+.btn-read { background: var(--purple); color: white; box-shadow: 0 4px 0 #a855f7; }
+.read-path-btn {
+  margin-top: 4px; padding: 4px 12px;
+  background: var(--purple); color: white;
+  border: none; border-radius: 12px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 2px 0 #a855f7;
+}
+
+/* ===== PARENT MODE MODAL ===== */
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+  z-index: 200; align-items: flex-end; justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal-sheet {
+  background: var(--white); border-radius: 24px 24px 0 0;
+  width: 100%; max-height: 85vh; display: flex; flex-direction: column;
+  max-width: 480px; animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); } to { transform: translateY(0); }
+}
+.modal-header {
+  padding: 20px 20px 12px; border-bottom: 1px solid var(--gray-light);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.modal-title { font-size: 18px; font-weight: 800; color: var(--text); }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 50%; border: none;
+  background: var(--gray-light); font-size: 16px; cursor: pointer;
+}
+.modal-body {
+  flex: 1; overflow-y: auto; padding: 12px 20px 40px;
+  -webkit-overflow-scrolling: touch;
+}
+.modal-section-title {
+  font-size: 12px; font-weight: 700; color: var(--gray-dark);
+  text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 8px;
+}
+.btn-danger {
+  width: 100%; padding: 14px; font-size: 15px; font-weight: 700;
+  background: #fff0f0; border: 2px solid var(--red);
+  border-radius: var(--radius); color: var(--red); cursor: pointer;
+}
+.book-label {
+  font-size: 13px; font-weight: 800; color: white; background: var(--green);
+  display: inline-block; padding: 3px 10px; border-radius: 10px; margin: 12px 0 6px;
+}
+.lesson-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid #f0f0f0;
+}
+.lesson-info { flex: 1; min-width: 0; }
+.lesson-row-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.lesson-chars-preview {
+  font-size: 15px; color: var(--gray-dark);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;
+}
+.jump-btn {
+  flex-shrink: 0; padding: 6px 12px; font-size: 12px; font-weight: 700;
+  background: var(--blue); color: white; border: none;
+  border-radius: 10px; cursor: pointer; box-shadow: 0 2px 0 var(--blue-dark);
+}
+/* ===== TREASURE BOX ===== */
+.treasure-node {
+  width: 72px; height: 72px; border-radius: 18px;
+  font-size: 32px; cursor: pointer; border: none; outline: none;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.15s; position: relative;
+}
+.treasure-node.available {
+  background: var(--gold);
+  box-shadow: 0 4px 0 #c49a00;
+  animation: treasurePulse 1.5s infinite;
+}
+.treasure-node.opened {
+  background: var(--gray-light);
+  box-shadow: 0 4px 0 #ccc;
+  cursor: default;
+}
+.treasure-node.locked {
+  background: var(--gray-light);
+  box-shadow: 0 4px 0 #ccc;
+  cursor: default; filter: grayscale(1); opacity: 0.6;
+}
+.treasure-node:active { transform: scale(0.92); }
+@keyframes treasurePulse {
+  0%,100% { box-shadow: 0 4px 0 #c49a00, 0 0 0 0 rgba(255,200,0,0.5); }
+  50% { box-shadow: 0 4px 0 #c49a00, 0 0 0 14px rgba(255,200,0,0); }
+}
+.jump-here-btn {
+  display: block; margin: 0 auto 4px;
+  padding: 5px 16px; font-size: 12px; font-weight: 700;
+  border: none; border-radius: 20px; cursor: pointer;
+  background: rgba(255,255,255,0.85); color: var(--text);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+/* ===== TREASURE REWARD OVERLAY ===== */
+.treasure-overlay {
+  display: none; position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%; background: rgba(0,0,0,0.6);
+  z-index: 300; align-items: center; justify-content: center;
+}
+.treasure-overlay.show { display: flex; }
+.treasure-popup {
+  background: linear-gradient(160deg,#fffde7,#fff9c4);
+  border-radius: 24px; padding: 40px 32px; text-align: center;
+  max-width: 320px; width: 90%; animation: bounceIn 0.5s ease;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+.treasure-popup .t-icon { font-size: 72px; margin-bottom: 8px; }
+.treasure-popup .t-title { font-size: 26px; font-weight: 900; color: var(--text); margin-bottom: 6px; }
+.treasure-popup .t-amount { font-size: 44px; font-weight: 900; color: var(--gold); margin: 8px 0 20px; }
+
+.parent-btn {
+  width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--gray-light);
+  background: none; font-size: 17px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; color: var(--gray-dark);
+}
+
+/* ===== SCROLLBAR HIDE ===== */
+.path-container::-webkit-scrollbar { display: none; }
+.path-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ===== RESPONSIVE ===== */
+@media (min-width: 480px) {
+  .screen { max-width: 480px; margin: 0 auto; left: 50%; transform: translateX(-50%); }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== HOME SCREEN ===== -->
+<div id="homeScreen" class="screen active">
+  <div class="home-header">
+    <div class="home-title">🐷 小猪猪学中文</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="streak-badge">🔥 <span id="streakCount">0</span>天</div>
+      <button class="parent-btn" onclick="openParentMode()">⚙️</button>
+    </div>
+  </div>
+  <div class="xp-bar-container">
+    <div class="xp-bar"><div class="xp-bar-fill" id="xpBarFill" style="width: 0%"></div></div>
+    <div class="xp-label">💎 <span id="xpLabel">0</span> 钻石</div>
+  </div>
+  <div class="path-container" id="pathContainer">
+    <!-- Dynamically generated -->
+  </div>
+</div>
+
+<!-- ===== LESSON SCREEN ===== -->
+<div id="lessonScreen" class="screen">
+  <div class="lesson-header">
+    <button class="lesson-close" onclick="exitLesson()">✕</button>
+    <div class="lesson-progress">
+      <div class="lesson-progress-fill" id="lessonProgressFill"></div>
+    </div>
+  </div>
+  <div class="lesson-body" id="lessonBody">
+    <!-- Exercise content injected here -->
+  </div>
+  <div class="feedback-bar" id="feedbackBar">
+    <span class="feedback-icon" id="feedbackIcon"></span>
+    <span class="feedback-text" id="feedbackText"></span>
+  </div>
+  <div class="action-bar">
+    <button class="action-btn btn-green" id="actionBtn" onclick="handleAction()">继续</button>
+  </div>
+</div>
+
+<!-- ===== COMPLETE SCREEN ===== -->
+<div id="completeScreen" class="screen">
+  <svg class="mascot" viewBox="0 0 100 100" id="mascotComplete"></svg>
+  <div class="complete-stars" id="completeStars"></div>
+  <div class="complete-title">太棒了！</div>
+  <div class="complete-subtitle" id="completeSubtitle"></div>
+  <div class="complete-xp" id="completeXp"></div>
+  <div class="action-bar" style="width:100%;display:flex;flex-direction:column;gap:10px">
+    <button class="action-btn btn-read" id="readStoryBtn" onclick="openReadingFromComplete()" style="display:none">📖 读故事</button>
+    <button class="action-btn btn-green" onclick="goHome()">继续学习</button>
+  </div>
+</div>
+
+<!-- ===== READING / STORY SCREEN ===== -->
+<div id="readingScreen" class="screen">
+  <div class="reading-header">
+    <button class="lesson-close" onclick="exitReading()">✕</button>
+    <div class="reading-title" id="readingTitle"></div>
+  </div>
+  <div class="story-scroll" id="storyScroll"></div>
+  <div class="recording-bar">
+    <div class="rec-status" id="recStatus">点击 🔊 听故事，点击 ⏺ 开始录音</div>
+    <div class="rec-timer" id="recTimer"></div>
+    <div class="rec-controls">
+      <button class="rec-btn btn-listen" id="listenBtn" onclick="listenStory()" title="朗读">🔊</button>
+      <button class="rec-btn btn-record" id="recordBtn" onclick="toggleRecording()" title="录音">⏺</button>
+      <button class="rec-btn btn-play" id="playBtn" onclick="playRecording()" title="播放录音" disabled>▶</button>
+      <button class="rec-btn btn-save" id="saveBtn" onclick="saveCurrentRecording()" title="保存录音" disabled>💾</button>
+    </div>
+    <div id="savedList" class="saved-list"></div>
+  </div>
+</div>
+
+<!-- ===== TREASURE REWARD OVERLAY ===== -->
+<div class="treasure-overlay" id="treasureOverlay">
+  <div class="treasure-popup">
+    <div class="t-icon">🎁</div>
+    <div class="t-title">宝箱开启！</div>
+    <div class="t-amount" id="treasureAmount"></div>
+    <button class="action-btn btn-green" style="max-width:200px;margin:0 auto" onclick="closeTreasureOverlay()">太棒了！</button>
+  </div>
+</div>
+
+<!-- ===== PARENT MODE MODAL ===== -->
+<div class="modal-overlay" id="parentModal" onclick="closeParentIfOutside(event)">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title">⚙️ 家长模式</div>
+      <button class="modal-close" onclick="closeParentMode()">✕</button>
+    </div>
+    <div class="modal-body" id="parentModalBody"></div>
+  </div>
+</div>
+
+<!-- ===== CONFETTI CONTAINER ===== -->
+<div class="confetti-container" id="confettiContainer"></div>
+
+<script>
+// ===================================================================
+// DATA: Book 1 — 四五快读 第一册
+// ===================================================================
+const BOOK_COLORS = ["#58cc02","#1cb0f6","#ff9600","#ce82ff","#ff4b4b","#ffc800"];
+const BOOKS = [
+  {
+    id: 1,
+    title: "第一册",
+    color: "#58cc02",
+    lessons: [
+      {
+        id: 1,
+        title: "第一课",
+        characters: [
+          { char: "人", meaning: "人", emoji: "🧑" },
+          { char: "口", meaning: "嘴巴", emoji: "👄" },
+          { char: "大", meaning: "大", emoji: "🐘" },
+          { char: "中", meaning: "中间", emoji: "🎯" },
+          { char: "小", meaning: "小", emoji: "🐜" },
+          { char: "哭", meaning: "哭", emoji: "😢" },
+          { char: "笑", meaning: "笑", emoji: "😄" },
+          { char: "一", meaning: "一", emoji: "☝️" },
+          { char: "上", meaning: "上面", emoji: "⬆️" },
+          { char: "下", meaning: "下面", emoji: "⬇️" },
+          { char: "爸", meaning: "爸爸", emoji: "👨" },
+          { char: "妈", meaning: "妈妈", emoji: "👩" },
+          { char: "天", meaning: "天", emoji: "🌤️" },
+          { char: "太", meaning: "太", emoji: "☀️" },
+          { char: "月", meaning: "月亮", emoji: "🌙" },
+          { char: "二", meaning: "二", emoji: "✌️" }
+        ],
+        words: ["大人", "小人", "大哭", "大笑", "大口", "小口"],
+        sentences:["爸爸是大人，我是小人。","妈妈笑了，我也笑了。","天上有月亮，亮亮的。","一上一下，大大小小。"]
+      },
+      {
+        id: 2,
+        title: "第二课",
+        characters: [
+          { char: "地", meaning: "地", emoji: "🌍" },
+          { char: "阳", meaning: "太阳", emoji: "☀️" },
+          { char: "亮", meaning: "亮", emoji: "💡" },
+          { char: "星", meaning: "星星", emoji: "⭐" },
+          { char: "云", meaning: "云", emoji: "☁️" },
+          { char: "火", meaning: "火", emoji: "🔥" },
+          { char: "水", meaning: "水", emoji: "💧" },
+          { char: "三", meaning: "三", emoji: "3️⃣" }
+        ],
+        words: ["爸爸", "妈妈", "上天", "天上", "太大", "太小", "一天", "一月", "二天", "二月"],
+        sentences:["天上有星星，亮亮的。","太阳出来了，大地都亮了。","白云飘在天上，真好看。","爸爸妈妈和我，一共三个人。"]
+      },
+      {
+        id: 3,
+        title: "第三课",
+        characters: [
+          { char: "土", meaning: "土", emoji: "🟤" },
+          { char: "山", meaning: "山", emoji: "⛰️" },
+          { char: "石", meaning: "石头", emoji: "🪨" },
+          { char: "木", meaning: "木头", emoji: "🪵" },
+          { char: "我", meaning: "我", emoji: "🙋" },
+          { char: "好", meaning: "好", emoji: "👍" },
+          { char: "有", meaning: "有", emoji: "✋" },
+          { char: "田", meaning: "田", emoji: "🌾" }
+        ],
+        words: ["天地", "大地", "太阳", "月亮", "星星", "天亮", "大火", "大水", "火星", "水星"],
+        sentences:["我有好多好朋友。","山上有大石头和大树。","天亮了，太阳出来了。","土地里长出好多东西。"]
+      },
+      {
+        id: 4,
+        title: "第四课",
+        characters: [
+          { char: "牛", meaning: "牛", emoji: "🐂" },
+          { char: "羊", meaning: "羊", emoji: "🐑" },
+          { char: "聪", meaning: "聪明", emoji: "🧒" },
+          { char: "耳", meaning: "耳朵", emoji: "👂" },
+          { char: "目", meaning: "眼睛", emoji: "👁️" },
+          { char: "心", meaning: "心", emoji: "❤️" },
+          { char: "和", meaning: "和", emoji: "🤝" },
+          { char: "四", meaning: "四", emoji: "4️⃣" }
+        ],
+        words: ["土地", "大山", "小山", "石山", "火山", "木星", "好人", "田地", "水田", "我有"],
+        sentences:["大牛和小羊在山上吃草。","聪明的孩子用心学习。","我和爸爸去看大山。","四月，田里的花开了。"]
+      },
+      {
+        id: 5,
+        title: "第五课",
+        characters: [
+          { char: "明", meaning: "明亮", emoji: "🌅" },
+          { char: "头", meaning: "头", emoji: "🗣️" },
+          { char: "眉", meaning: "眉毛", emoji: "🤨" },
+          { char: "鼻", meaning: "鼻子", emoji: "👃" },
+          { char: "手", meaning: "手", emoji: "✋" },
+          { char: "花", meaning: "花", emoji: "🌸" },
+          { char: "树", meaning: "树", emoji: "🌳" },
+          { char: "五", meaning: "五", emoji: "5️⃣" }
+        ],
+        words: ["大牛", "小牛", "水牛", "山羊", "小羊", "小心", "中心", "四月", "四天"],
+        sentences:["花树上有小鸟叫。","我用手摸了摸大树。","小心，不要摔跤！","五月，山上开满了花。"]
+      },
+      {
+        id: 6,
+        title: "第六课",
+        characters: [
+          { char: "草", meaning: "草", emoji: "🌿" },
+          { char: "叶", meaning: "叶子", emoji: "🍃" },
+          { char: "日", meaning: "日/太阳", emoji: "☀️" },
+          { char: "风", meaning: "风", emoji: "💨" },
+          { char: "雨", meaning: "雨", emoji: "🌧️" },
+          { char: "的", meaning: "的", emoji: "📌" },
+          { char: "孩", meaning: "孩子", emoji: "👧" },
+          { char: "六", meaning: "六", emoji: "6️⃣" }
+        ],
+        words: ["聪明", "明亮", "明天", "明月", "眉头", "鼻头", "石头", "木头", "小手", "小花", "大树"],
+        sentences:["大风大雨来了，孩子跑回家。","日出了，草地上亮亮的。","树叶在风中飘来飘去。","六月的雨，凉凉的。"]
+      },
+      {
+        id: 7,
+        title: "第七课",
+        characters: [
+          { char: "白", meaning: "白", emoji: "⬜" },
+          { char: "红", meaning: "红", emoji: "🔴" },
+          { char: "是", meaning: "是", emoji: "✅" },
+          { char: "家", meaning: "家", emoji: "🏠" },
+          { char: "多", meaning: "多", emoji: "📦" },
+          { char: "唱", meaning: "唱歌", emoji: "🎤" },
+          { char: "子", meaning: "子/孩子", emoji: "👶" },
+          { char: "七", meaning: "七", emoji: "7️⃣" }
+        ],
+        words: ["花草", "小草", "草地", "树叶", "一日", "大风", "大雨", "小雨", "下雨", "风雨", "雨水"],
+        sentences:["家里有好多小孩子。","白花红花，真好看！","七月，大家一起唱歌。","小孩子在草地上玩。"]
+      },
+      {
+        id: 8,
+        title: "第八课",
+        characters: [
+          { char: "爱", meaning: "爱", emoji: "💕" },
+          { char: "爷", meaning: "爷爷", emoji: "👴" },
+          { char: "奶", meaning: "奶奶", emoji: "👵" },
+          { char: "少", meaning: "少", emoji: "🤏" },
+          { char: "歌", meaning: "歌", emoji: "🎵" },
+          { char: "不", meaning: "不", emoji: "🚫" },
+          { char: "朋", meaning: "朋友", emoji: "👫" },
+          { char: "八", meaning: "八", emoji: "8️⃣" }
+        ],
+        words: ["白云", "白天", "明白", "红花", "火红", "火花", "我是", "大家", "我家", "孩子", "七月"],
+        sentences:["爷爷奶奶爱唱歌。","我爱我的家，我爱爸爸妈妈。","朋友不少，大家一起玩。","八月，朋友来我家玩。"]
+      },
+      {
+        id: 9,
+        title: "第九课",
+        characters: [
+          { char: "宝", meaning: "宝贝", emoji: "💎" },
+          { char: "在", meaning: "在", emoji: "📍" },
+          { char: "学", meaning: "学习", emoji: "📖" },
+          { char: "书", meaning: "书", emoji: "📚" },
+          { char: "游", meaning: "游泳", emoji: "🏊" },
+          { char: "友", meaning: "朋友", emoji: "🤗" },
+          { char: "儿", meaning: "儿子", emoji: "👦" },
+          { char: "九", meaning: "九", emoji: "9️⃣" }
+        ],
+        words: ["爷爷", "奶奶", "多少", "唱歌", "爱笑", "爱哭", "不爱", "不哭", "不笑", "不是", "八月"],
+        sentences:["宝宝在家看书学习。","朋友们一起游水，真开心！","书里有好多好故事。","九月，儿子去上学了。"]
+      },
+      {
+        id: 10,
+        title: "第十课",
+        characters: [
+          { char: "贝", meaning: "贝壳", emoji: "🐚" },
+          { char: "生", meaning: "生", emoji: "🌱" },
+          { char: "习", meaning: "学习", emoji: "✏️" },
+          { char: "看", meaning: "看", emoji: "👀" },
+          { char: "戏", meaning: "游戏", emoji: "🎭" },
+          { char: "字", meaning: "字", emoji: "🔤" },
+          { char: "气", meaning: "气", emoji: "😤" },
+          { char: "十", meaning: "十", emoji: "🔟" }
+        ],
+        words: ["宝宝", "在家", "不在", "游水", "朋友", "友人", "花儿", "儿子", "儿歌", "九月"],
+        sentences:["我学会了好多生字，真棒！","我们一起看戏，真好玩。","十月，大家认字学习。","字要多看多写，才学得好。"]
+      }
+    ]
+  },
+  {
+    id: 2, title: "第二册", color: "#1cb0f6",
+    lessons: [
+      { id: 1, title: "第十一课",
+        characters: [
+          {char:"会",meaning:"能够",emoji:"🤝"},{char:"见",meaning:"看见",emoji:"👀"},
+          {char:"早",meaning:"早上",emoji:"🌅"},{char:"雪",meaning:"雪",emoji:"❄️"},
+          {char:"鸡",meaning:"鸡",emoji:"🐔"},{char:"绿",meaning:"绿色",emoji:"💚"},
+          {char:"做",meaning:"做",emoji:"🔨"},{char:"黄",meaning:"黄色",emoji:"💛"},
+          {char:"鱼",meaning:"鱼",emoji:"🐟"},{char:"吃",meaning:"吃",emoji:"🍚"},
+          {char:"飞",meaning:"飞",emoji:"🕊️"},{char:"要",meaning:"想要",emoji:"🙏"},
+          {char:"跑",meaning:"跑",emoji:"🏃"},{char:"青",meaning:"青色",emoji:"🟢"},
+          {char:"鸟",meaning:"鸟",emoji:"🐦"},{char:"他",meaning:"他",emoji:"👦"}
+        ],
+        words:["看见","会见","学会","大雪","小雪","早上","雪花","白雪","雪人","雪山","雪地","小鸡","大鸡","绿草","绿叶","黄花","黄牛","青草","小鸟","飞鸟"],
+        sentences:["我学会好多生字。","树上有爱唱歌的小黄鸟。","天下大雪。早上，我看见地上有好多白雪。","我和妈妈、爸爸去奶奶家。在奶奶家，我看见大山、水田和水牛。"]
+      },
+      { id: 2, title: "第十二课",
+        characters: [
+          {char:"们",meaning:"多人",emoji:"👥"},{char:"春",meaning:"春天",emoji:"🌸"},
+          {char:"夏",meaning:"夏天",emoji:"☀️"},{char:"秋",meaning:"秋天",emoji:"🍂"},
+          {char:"冬",meaning:"冬天",emoji:"⛄"},{char:"季",meaning:"季节",emoji:"🗓️"},
+          {char:"都",meaning:"全部",emoji:"📦"},{char:"个",meaning:"量词",emoji:"☝️"}
+        ],
+        words:["我们","他们","春天","夏天","秋天","冬天","春风","四季","春雨","一个","个人","都是","都有"],
+        sentences:["春天来了，花开了。","我们和他们都是好孩子。","四季里，我最爱春天。","春风暖暖的，真舒服。"]
+      },
+      { id: 3, title: "第十三课",
+        characters: [
+          {char:"狗",meaning:"狗",emoji:"🐕"},{char:"猫",meaning:"猫",emoji:"🐱"},
+          {char:"蓝",meaning:"蓝色",emoji:"💙"},{char:"落",meaning:"落下",emoji:"🍂"},
+          {char:"真",meaning:"真的",emoji:"✅"},{char:"开",meaning:"打开",emoji:"🚪"},
+          {char:"说",meaning:"说话",emoji:"💬"},{char:"也",meaning:"也",emoji:"➕"}
+        ],
+        words:["小狗","小猫","花猫","蓝天","落叶","落下","真好","开花","开心","开口","说话","也是","也好"],
+        sentences:["蓝天上有白云，真好看。","秋天，树叶落下来了。","小猫和小狗是好朋友。","开心！今天也是好天气。"]
+      },
+      { id: 4, title: "第十四课",
+        characters: [
+          {char:"马",meaning:"马",emoji:"🐴"},{char:"米",meaning:"米",emoji:"🍚"},
+          {char:"哥",meaning:"哥哥",emoji:"👦"},{char:"姐",meaning:"姐姐",emoji:"👧"},
+          {char:"来",meaning:"来",emoji:"🏃"},{char:"黑",meaning:"黑色",emoji:"🖤"},
+          {char:"去",meaning:"去",emoji:"🚶"},{char:"出",meaning:"出去",emoji:"🚪"}
+        ],
+        words:["小马","大马","马上","大米","小米","哥哥","姐姐","出来","来去","出去","黑马","黑白","黑鱼"],
+        sentences:["哥哥姐姐一起出来玩。","大马和小马跑来跑去。","黑马跑得很快，马上就到了。","我们吃大米饭，真香。"]
+      },
+      { id: 5, title: "第十五课",
+        characters: [
+          {char:"跳",meaning:"跳",emoji:"🤸"},{char:"着",meaning:"正在",emoji:"▶️"},
+          {char:"了",meaning:"完成",emoji:"✔️"},{char:"你",meaning:"你",emoji:"🫵"},
+          {char:"又",meaning:"又",emoji:"🔄"},{char:"弟",meaning:"弟弟",emoji:"👦"},
+          {char:"妹",meaning:"妹妹",emoji:"👧"},{char:"东",meaning:"东方",emoji:"🌅"}
+        ],
+        words:["跳水","跑着","看着","来了","好了","你好","你们","弟弟","妹妹","又大又好","东风","东方"],
+        sentences:["弟弟妹妹跑来跑去，真快乐。","你们好！东风来了，好凉快。","跳水！弟弟跑着跳进水里。","又大又好，大家都来看。"]
+      },
+      { id: 6, title: "第十六课",
+        characters: [
+          {char:"就",meaning:"就是",emoji:"👉"},{char:"还",meaning:"还有",emoji:"➕"},
+          {char:"快",meaning:"快",emoji:"⚡"},{char:"得",meaning:"得到",emoji:"🎁"},
+          {char:"西",meaning:"西方",emoji:"🌅"},{char:"乐",meaning:"快乐",emoji:"😄"},
+          {char:"到",meaning:"到达",emoji:"📍"},{char:"起",meaning:"起来",emoji:"⬆️"}
+        ],
+        words:["就是","还有","快乐","快跑","东西","得到","看到","到了","起来","起飞","一起"],
+        sentences:["快跑！一起去玩吧。","就是这里，大家都很快乐。","鸟儿起飞了，飞向蓝天。","还有好多东西，大家一起来看。"]
+      },
+      { id: 7, title: "第十七课",
+        characters: [
+          {char:"玩",meaning:"玩耍",emoji:"🎮"},{char:"捉",meaning:"抓",emoji:"🤏"},
+          {char:"迷",meaning:"迷路",emoji:"😵"},{char:"球",meaning:"球",emoji:"⚽"},
+          {char:"很",meaning:"很",emoji:"💯"},{char:"高",meaning:"高",emoji:"🦒"},
+          {char:"鸭",meaning:"鸭子",emoji:"🦆"},{char:"哈",meaning:"哈哈",emoji:"😆"}
+        ],
+        words:["玩水","玩球","捉迷藏","球场","很好","很多","很大","高山","高大","小鸭","鸭子","哈哈"],
+        sentences:["哈哈！捉迷藏真好玩。","小鸭子在水里玩，很开心。","球场很大，大家玩球。","高山上有很多大石头。"]
+      },
+      { id: 8, title: "第十八课",
+        characters: [
+          {char:"方",meaning:"方向",emoji:"🧭"},{char:"爬",meaning:"爬",emoji:"🧗"},
+          {char:"藏",meaning:"藏",emoji:"🫣"},{char:"兴",meaning:"高兴",emoji:"😊"},
+          {char:"向",meaning:"方向",emoji:"➡️"},{char:"对",meaning:"对的",emoji:"✅"},
+          {char:"能",meaning:"能够",emoji:"💪"},{char:"叫",meaning:"叫",emoji:"📢"}
+        ],
+        words:["地方","方向","爬山","爬上","捉迷藏","高兴","向上","对了","不对","不能","能看","叫好"],
+        sentences:["爬山真高兴，大家向上爬。","地方太大了，找不到方向。","对了！就是这个地方。","能爬上去，大家叫好。"]
+      },
+      { id: 9, title: "第十九课",
+        characters: [
+          {char:"变",meaning:"变化",emoji:"🔄"},{char:"问",meaning:"问",emoji:"❓"},
+          {char:"成",meaning:"变成",emoji:"✨"},{char:"再",meaning:"再次",emoji:"🔁"},
+          {char:"急",meaning:"着急",emoji:"😰"},{char:"教",meaning:"教",emoji:"👩‍🏫"},
+          {char:"门",meaning:"门",emoji:"🚪"},{char:"只",meaning:"只有",emoji:"☝️"}
+        ],
+        words:["变成","变大","问好","学问","成了","再见","再来","着急","急了","教书","大门","开门","只有","只是"],
+        sentences:["再见！下次再来玩。","着急了，大门还没开。","学问很多，只有好好学才行。","小虫变成了大蝴蝶。"]
+      },
+      { id: 10, title: "第二十课",
+        characters: [
+          {char:"回",meaning:"回来",emoji:"🔙"},{char:"公",meaning:"公共",emoji:"🏛️"},
+          {char:"打",meaning:"打",emoji:"👊"},{char:"兔",meaning:"兔子",emoji:"🐰"},
+          {char:"请",meaning:"请",emoji:"🙏"},{char:"过",meaning:"经过",emoji:"🚶"},
+          {char:"吗",meaning:"疑问",emoji:"❓"},{char:"泳",meaning:"游泳",emoji:"🏊"}
+        ],
+        words:["回来","回去","回家","公鸡","公开","打人","打开","小兔","兔子","请问","请来","过来","过去","好吗","是吗","游泳"],
+        sentences:["请问，小兔子去哪里了？","公鸡叫了，大家都回家了。","过来过去，游泳真好玩。","回来啦！打开门，快进来。"]
+      }
+    ]
+  },
+  {
+    id: 3, title: "第三册", color: "#ff9600",
+    lessons: [
+      { id: 1, title: "第二十一课",
+        characters: [
+          {char:"虫",meaning:"虫子",emoji:"🐛"},{char:"把",meaning:"握住",emoji:"✊"},
+          {char:"驮",meaning:"背着",emoji:"🐎"},{char:"鹅",meaning:"鹅",emoji:"🦢"},
+          {char:"河",meaning:"河水",emoji:"🏞️"},{char:"礼",meaning:"礼物",emoji:"🎁"},
+          {char:"背",meaning:"背部",emoji:"🎒"},{char:"拿",meaning:"拿住",emoji:"🤲"},
+          {char:"里",meaning:"里面",emoji:"📦"},{char:"后",meaning:"后面",emoji:"⬅️"},
+          {char:"谢",meaning:"感谢",emoji:"🙏"},{char:"边",meaning:"旁边",emoji:"↔️"},
+          {char:"貌",meaning:"礼貌",emoji:"😊"},{char:"班",meaning:"班级",emoji:"🏫"},
+          {char:"幼",meaning:"幼小",emoji:"👶"},{char:"园",meaning:"园子",emoji:"🏡"}
+        ],
+        words:["虫子","一把","把手","把门","天鹅","白鹅","小河","大河","河水","黄河","河马","背心","背上","手背","拿着","拿来","里面","后面","后来","谢谢","边上","礼貌","上班","幼儿园","公园","花园"],
+        sentences:["小虫子在河边飞来飞去。","天鹅在大河里游来游去。","幼儿园里有好多小朋友。","谢谢你，你真有礼貌！"]
+      },
+      { id: 2, title: "第二十二课",
+        characters: [
+          {char:"照",meaning:"照亮",emoji:"📸"},{char:"婆",meaning:"婆婆",emoji:"👵"},
+          {char:"甜",meaning:"甜的",emoji:"🍬"},{char:"梦",meaning:"做梦",emoji:"💤"},
+          {char:"老",meaning:"年老",emoji:"🧓"},{char:"盆",meaning:"盆子",emoji:"🪴"},
+          {char:"尺",meaning:"尺子",emoji:"📏"},{char:"刀",meaning:"刀子",emoji:"🔪"}
+        ],
+        words:["照着","照亮","老婆婆","婆婆","甜甜的","甜水","做梦","梦里","老人","老师","花盆","一盆","尺子","大刀","小刀"],
+        sentences:["老婆婆用刀切甜甜的西瓜。","我做了个好梦，梦里好快乐。","老师照亮了我们的心。","花盆里的花开了，真好看。"]
+      },
+      { id: 3, title: "第二十三课",
+        characters: [
+          {char:"时",meaning:"时间",emoji:"⏰"},{char:"正",meaning:"正好",emoji:"✅"},
+          {char:"文",meaning:"文字",emoji:"📝"},{char:"具",meaning:"工具",emoji:"🧰"},
+          {char:"笔",meaning:"笔",emoji:"✏️"},{char:"画",meaning:"画画",emoji:"🎨"},
+          {char:"长",meaning:"长",emoji:"📏"},{char:"放",meaning:"放下",emoji:"🤚"}
+        ],
+        words:["小时","时间","正好","正在","文字","文具","笔画","画画","画家","长大","放下","放学","放手","毛笔"],
+        sentences:["放学了，我正在画画。","毛笔画出的字，真好看。","长大后，我要当画家。","文具要好好保管，不要丢。"]
+      },
+      { id: 4, title: "第二十四课",
+        characters: [
+          {char:"用",meaning:"使用",emoji:"👆"},{char:"总",meaning:"总是",emoji:"🔄"},
+          {char:"尾",meaning:"尾巴",emoji:"🦊"},{char:"巴",meaning:"尾巴",emoji:"🐒"},
+          {char:"玉",meaning:"玉石",emoji:"💎"},{char:"尖",meaning:"尖尖",emoji:"📌"},
+          {char:"竹",meaning:"竹子",emoji:"🎋"},{char:"苗",meaning:"小苗",emoji:"🌱"}
+        ],
+        words:["用心","有用","总是","总在","尾巴","大尾巴","玉石","玉米","尖尖的","笔尖","竹子","竹叶","花苗","树苗"],
+        sentences:["松鼠的尾巴又大又好看。","竹叶尖尖的，小心别划破。","种下小树苗，总有一天会长大。","玉米长出来了，真开心。"]
+      },
+      { id: 5, title: "第二十五课",
+        characters: [
+          {char:"听",meaning:"听",emoji:"👂"},{char:"话",meaning:"说话",emoji:"💬"},
+          {char:"猴",meaning:"猴子",emoji:"🐒"},{char:"猩",meaning:"猩猩",emoji:"🦍"},
+          {char:"给",meaning:"给",emoji:"🤲"},{char:"进",meaning:"进去",emoji:"🚪"},
+          {char:"告",meaning:"告诉",emoji:"📢"},{char:"电",meaning:"电",emoji:"⚡"}
+        ],
+        words:["听话","听着","好听","说话","猴子","小猴","猩猩","给你","给我","进来","进去","告诉","电话","电灯"],
+        sentences:["小猴子很听话，大家都喜欢它。","猩猩给我一个大西瓜。","告诉我，电话号码是多少？","进来，电灯亮着呢。"]
+      },
+      { id: 6, title: "第二十六课",
+        characters: [
+          {char:"诉",meaning:"告诉",emoji:"🗣️"},{char:"念",meaning:"想念",emoji:"💭"},
+          {char:"饭",meaning:"米饭",emoji:"🍚"},{char:"乖",meaning:"乖巧",emoji:"😇"},
+          {char:"想",meaning:"想",emoji:"🤔"},{char:"面",meaning:"面条",emoji:"🍜"},
+          {char:"住",meaning:"住",emoji:"🏠"},{char:"前",meaning:"前面",emoji:"⬆️"}
+        ],
+        words:["告诉","想念","念书","吃饭","米饭","乖乖","乖孩子","想着","想家","面前","前面","住在","前后","前边"],
+        sentences:["乖孩子，快来吃饭了。","我想念住在远方的奶奶。","念书要用心，才学得好。","前面有什么？让我去看看。"]
+      },
+      { id: 7, title: "第二十七课",
+        characters: [
+          {char:"从",meaning:"从前",emoji:"🔙"},{char:"同",meaning:"相同",emoji:"🤝"},
+          {char:"没",meaning:"没有",emoji:"🚫"},{char:"送",meaning:"送给",emoji:"🎁"},
+          {char:"果",meaning:"水果",emoji:"🍎"},{char:"工",meaning:"工人",emoji:"👷"},
+          {char:"厂",meaning:"工厂",emoji:"🏭"},{char:"产",meaning:"生产",emoji:"⚙️"}
+        ],
+        words:["从前","从来","从小","同学","不同","没有","没人","送给","送来","水果","果子","工人","工厂","生产"],
+        sentences:["从前有个小孩，从小爱学习。","同学送来好多水果，真开心。","工厂里的工人认真生产。","没有什么事，大家一起玩吧。"]
+      },
+      { id: 8, title: "第二十八课",
+        characters: [
+          {char:"动",meaning:"动",emoji:"🏃"},{char:"关",meaning:"关门",emoji:"🚪"},
+          {char:"找",meaning:"寻找",emoji:"🔍"},{char:"按",meaning:"按下",emoji:"👇"},
+          {char:"年",meaning:"年",emoji:"📅"},{char:"节",meaning:"节日",emoji:"🎉"},
+          {char:"桃",meaning:"桃子",emoji:"🍑"},{char:"荷",meaning:"荷花",emoji:"🪷"}
+        ],
+        words:["动物","动手","关门","关上","关心","找人","找到","年老","过年","新年","节日","桃子","桃花","荷花","荷叶"],
+        sentences:["过年了，大家送桃花庆节日。","找到了，荷叶下有好多鱼。","关心动物，爱护小生命。","新年好，大家都很开心。"]
+      },
+      { id: 9, title: "第二十九课",
+        characters: [
+          {char:"菊",meaning:"菊花",emoji:"🌼"},{char:"梅",meaning:"梅花",emoji:"🌸"},
+          {char:"冷",meaning:"冷",emoji:"🥶"},{char:"它",meaning:"它",emoji:"👉"},
+          {char:"怕",meaning:"害怕",emoji:"😨"},{char:"躲",meaning:"躲藏",emoji:"🙈"},
+          {char:"勇",meaning:"勇敢",emoji:"💪"},{char:"敢",meaning:"敢",emoji:"🦁"}
+        ],
+        words:["菊花","梅花","梅子","好冷","冷水","它们","害怕","怕人","不怕","躲着","躲开","勇敢","勇气"],
+        sentences:["冬天好冷，菊花还在开。","梅花不怕冷，真勇敢！","小虫躲在树叶里，怕冷。","勇敢的孩子什么都不怕。"]
+      },
+      { id: 10, title: "第三十课",
+        characters: [
+          {char:"堆",meaning:"一堆",emoji:"🗻"},{char:"仗",meaning:"打仗",emoji:"⚔️"},
+          {char:"柳",meaning:"柳树",emoji:"🌿"},{char:"农",meaning:"农民",emoji:"👨‍🌾"},
+          {char:"民",meaning:"人民",emoji:"👥"},{char:"伯",meaning:"伯伯",emoji:"👨"},
+          {char:"种",meaning:"种地",emoji:"🌱"},{char:"最",meaning:"最好",emoji:"🏆"}
+        ],
+        words:["一堆","土堆","打仗","柳树","柳叶","农民","农田","农村","人民","伯伯","种地","种花","种树","最大","最好","最多"],
+        sentences:["农民伯伯在农田种地。","柳树旁边有一堆土。","农村里的人民最勤劳。","种下最多的花，最好看。"]
+      }
+    ]
+  },
+  {
+    id: 4, title: "第四册", color: "#ce82ff",
+    lessons: [
+      { id: 1, title: "第三十一课",
+        characters: [
+          {char:"片",meaning:"片段",emoji:"🃏"},{char:"吹",meaning:"吹气",emoji:"🌬️"},
+          {char:"浇",meaning:"浇水",emoji:"🚿"},{char:"燕",meaning:"燕子",emoji:"🐦"},
+          {char:"睡",meaning:"睡觉",emoji:"😴"},{char:"醒",meaning:"醒来",emoji:"⏰"},
+          {char:"蛙",meaning:"青蛙",emoji:"🐸"},{char:"呱",meaning:"蛙叫",emoji:"📢"},
+          {char:"南",meaning:"南方",emoji:"🧭"},{char:"椅",meaning:"椅子",emoji:"🪑"},
+          {char:"坐",meaning:"坐下",emoji:"🧘"},{char:"身",meaning:"身体",emoji:"🧍"},
+          {char:"吧",meaning:"语气",emoji:"💬"},{char:"桌",meaning:"桌子",emoji:"🪵"},
+          {char:"布",meaning:"布料",emoji:"🧵"},{char:"抱",meaning:"拥抱",emoji:"🤗"}
+        ],
+        words:["一片","吹风","吹气","浇水","浇花","燕子","睡醒","睡梦","醒了","醒来","青蛙","牛蛙","南边","南方","南风","椅子","坐下","坐着","身上","身高","来吧","去吧","好吧","桌子","书桌","花布","桌布","抱着"],
+        sentences:["燕子从南方飞来了。","青蛙睡醒了，跳进水里。","坐在椅子上浇花，真舒服。","南风吹来，身上暖暖的。"]
+      },
+      { id: 2, title: "第三十二课",
+        characters: [
+          {char:"摔",meaning:"摔倒",emoji:"🤕"},{char:"声",meaning:"声音",emoji:"🔊"},
+          {char:"谁",meaning:"谁呀",emoji:"❓"},{char:"呢",meaning:"语气",emoji:"💭"},
+          {char:"认",meaning:"认识",emoji:"👀"},{char:"原",meaning:"原来",emoji:"💡"},
+          {char:"痛",meaning:"疼痛",emoji:"🩹"},{char:"喊",meaning:"喊叫",emoji:"📣"}
+        ],
+        words:["摔倒","摔跤","声音","大声","小声","哭声","谁的","是谁","认识","认字","认真","原来","原因","头痛","心痛","喊叫","大喊"],
+        sentences:["摔倒了，大声哭了起来。","是谁在大喊？原来是弟弟。","认真认字，头痛也不怕。","哭声太大了，我头痛。"]
+      },
+      { id: 3, title: "第三十三课",
+        characters: [
+          {char:"狼",meaning:"恶狼",emoji:"🐺"},{char:"啦",meaning:"语气",emoji:"🗣️"},
+          {char:"赶",meaning:"赶路",emoji:"🏃"},{char:"救",meaning:"救人",emoji:"🆘"},
+          {char:"假",meaning:"真假",emoji:"🎭"},{char:"掉",meaning:"掉落",emoji:"⬇️"},
+          {char:"路",meaning:"道路",emoji:"🛤️"},{char:"碰",meaning:"碰到",emoji:"💥"}
+        ],
+        words:["大灰狼","狼狗","好啦","来啦","赶快","赶走","赶来","救人","救火","救命","真假","假的","放假","掉了","掉下","大路","小路","走路","马路","碰到","碰上"],
+        sentences:["大灰狼来啦，赶快跑！","救命！有人掉进水里了。","放假了，我们走路去玩。","碰到假的，要赶快走开。"]
+      },
+      { id: 4, title: "第三十四课",
+        characters: [
+          {char:"哪",meaning:"哪里",emoji:"🤷"},{char:"呀",meaning:"语气",emoji:"😮"},
+          {char:"两",meaning:"两个",emoji:"✌️"},{char:"逃",meaning:"逃跑",emoji:"🏃‍♂️"},
+          {char:"走",meaning:"行走",emoji:"🚶"},{char:"她",meaning:"她",emoji:"👩"},
+          {char:"点",meaning:"一点",emoji:"⚫"},{char:"音",meaning:"声音",emoji:"🎵"}
+        ],
+        words:["哪里","哪个","哪边","好呀","是呀","两个","两天","两边","逃跑","逃走","走路","走开","她们","一点","点头","声音","读音"],
+        sentences:["她们走路去哪里了？","两个好朋友，一点都不怕。","好呀！我们两边走路。","点头说是，摇头说不是。"]
+      },
+      { id: 5, title: "第三十五课",
+        characters: [
+          {char:"可",meaning:"可以",emoji:"👌"},{char:"伸",meaning:"伸手",emoji:"🤲"},
+          {char:"缝",meaning:"缝隙",emoji:"🪡"},{char:"夹",meaning:"夹住",emoji:"🗜️"},
+          {char:"根",meaning:"根部",emoji:"🌱"},{char:"棍",meaning:"棍子",emoji:"🥢"},
+          {char:"丢",meaning:"丢失",emoji:"🫳"},{char:"灰",meaning:"灰色",emoji:"🩶"}
+        ],
+        words:["可以","可是","可爱","可怕","伸手","伸出","门缝","石缝","夹住","夹着","一根","根本","树根","木棍","棍子","丢了","丢掉","灰色","灰心"],
+        sentences:["可爱的小猫从门缝钻进来。","可是，棍子丢了怎么办？","一根树根从石缝里长出来。","不要灰心，可以再来一次。"]
+      },
+      { id: 6, title: "第三十六课",
+        characters: [
+          {char:"萝",meaning:"萝卜",emoji:"🥕"},{char:"卜",meaning:"萝卜",emoji:"🥬"},
+          {char:"熟",meaning:"成熟",emoji:"🍎"},{char:"拔",meaning:"拔出",emoji:"💪"},
+          {char:"拉",meaning:"拉手",emoji:"🤝"},{char:"鼠",meaning:"老鼠",emoji:"🐭"},
+          {char:"咕",meaning:"咕咚",emoji:"🔔"},{char:"咚",meaning:"响声",emoji:"🥁"}
+        ],
+        words:["萝卜","白萝卜","红萝卜","熟了","熟人","成熟","煮熟","拔出","拔掉","拔草","拔萝卜","拉手","拉住","拉开","老鼠","小老鼠","松鼠","咕咚"],
+        sentences:["大家一起拔萝卜，拔出来了！","老鼠拉住白萝卜，拔不出来。","萝卜熟了，煮一煮真好吃。","咕咚一声，松鼠掉进水里。"]
+      },
+      { id: 7, title: "第三十七课",
+        characters: [
+          {char:"倒",meaning:"倒下",emoji:"🔄"},{char:"抬",meaning:"抬起",emoji:"🙌"},
+          {char:"晚",meaning:"晚上",emoji:"🌙"},{char:"左",meaning:"左边",emoji:"⬅️"},
+          {char:"右",meaning:"右边",emoji:"➡️"},{char:"怎",meaning:"怎么",emoji:"🤔"},
+          {char:"么",meaning:"什么",emoji:"❔"},{char:"办",meaning:"办法",emoji:"📋"}
+        ],
+        words:["倒了","倒下","摔倒","倒水","抬头","抬起","晚上","晚会","晚饭","晚安","左边","左右","左手","右边","右手","怎么","怎样","怎么办","什么","那么","办法","办事"],
+        sentences:["晚上，我抬头看星星。","倒水时，左手拿杯子。","怎么办？水倒了。","晚安！明天见。"]
+      },
+      { id: 8, title: "第三十八课",
+        characters: [
+          {char:"知",meaning:"知道",emoji:"🧠"},{char:"道",meaning:"道路",emoji:"🛣️"},
+          {char:"午",meaning:"中午",emoji:"☀️"},{char:"这",meaning:"这个",emoji:"👉"},
+          {char:"座",meaning:"座位",emoji:"💺"},{char:"洞",meaning:"山洞",emoji:"🕳️"},
+          {char:"什",meaning:"什么",emoji:"❓"},{char:"害",meaning:"害怕",emoji:"😨"}
+        ],
+        words:["知道","不知道","道路","道理","中午","上午","下午","午饭","这个","这里","这边","这样","座位","让座","山洞","洞口","洞里","什么","害怕","害虫","厉害"],
+        sentences:["中午，大家让座吃午饭。","山洞里有什么？我不知道。","这里有害虫，厉害得很。","你知道这条道路通哪里吗？"]
+      },
+      { id: 9, title: "第三十九课",
+        characters: [
+          {char:"付",meaning:"付出",emoji:"💰"},{char:"顶",meaning:"头顶",emoji:"⛰️"},
+          {char:"角",meaning:"角落",emoji:"📐"},{char:"死",meaning:"死亡",emoji:"💀"},
+          {char:"扑",meaning:"扑上",emoji:"🐅"},{char:"期",meaning:"日期",emoji:"📅"},
+          {char:"带",meaning:"带上",emoji:"🎒"},{char:"分",meaning:"分开",emoji:"✂️"}
+        ],
+        words:["付出","对付","头顶","山顶","屋顶","牛角","角落","三角","死了","生死","扑上","扑到","星期","日期","学期","带上","带走","带来","带路","分开","十分","分钟","分别"],
+        sentences:["牛角扑上来，大家快跑！","下星期，我们分开去旅行。","山顶上，头顶着大太阳。","付出努力，十分钟就学会了。"]
+      },
+      { id: 10, title: "第四十课",
+        characters: [
+          {char:"清",meaning:"清水",emoji:"💧"},{char:"今",meaning:"今天",emoji:"📆"},
+          {char:"昨",meaning:"昨天",emoji:"⏪"},{char:"光",meaning:"光亮",emoji:"🌟"},
+          {char:"阴",meaning:"阴天",emoji:"☁️"},{char:"错",meaning:"对错",emoji:"❌"},
+          {char:"指",meaning:"手指",emoji:"👆"},{char:"拇",meaning:"拇指",emoji:"👍"}
+        ],
+        words:["清水","清早","清楚","今天","今年","今后","昨天","昨晚","光明","月光","阳光","光亮","阴天","阴雨","错了","没错","对错","手指","指出","指头","拇指","大拇指"],
+        sentences:["清早起来，阳光真好看。","今天阴天，昨天晴天。","竖起大拇指，没错！","月光清亮，照着清水。"]
+      }
+    ]
+  },
+  {
+    id: 5, title: "第五册", color: "#ff4b4b",
+    lessons: [
+      { id: 1, title: "第四十一课",
+        characters: [
+          {char:"食",meaning:"吃",emoji:"🍚"},{char:"无",meaning:"没有",emoji:"🚫"},
+          {char:"名",meaning:"名字",emoji:"📛"},{char:"加",meaning:"增加",emoji:"➕"},
+          {char:"共",meaning:"一起",emoji:"🤝"},{char:"事",meaning:"事情",emoji:"📋"},
+          {char:"帮",meaning:"帮助",emoji:"🤲"},{char:"饿",meaning:"想吃",emoji:"😫"},
+          {char:"肚",meaning:"肚子",emoji:"🫄"},{char:"狮",meaning:"狮子",emoji:"🦁"},
+          {char:"觉",meaning:"睡觉",emoji:"😴"},{char:"毛",meaning:"毛发",emoji:"🧶"},
+          {char:"求",meaning:"请求",emoji:"🙏"},{char:"等",meaning:"等待",emoji:"⏳"},
+          {char:"香",meaning:"好闻",emoji:"🌸"},{char:"肉",meaning:"肉类",emoji:"🥩"}
+        ],
+        words:["冷食","甜食","食指","无名指","无风","无边","名字","名人","加上","一共","共同","公共","做事","大事","好事","帮你","帮他","帮手","肚子","饿了","狮子","睡觉","毛笔","毛虫","毛毛虫","毛毛雨","要求","请求","求救","等一等","好香","香甜","香水","吃肉","牛肉","羊肉","鱼肉"],
+        story:{ title:"大拇指生气了", text:"一只手有五个手指：大拇指、食指、中指、无名指，还有小指。\n\n左手和右手加起来，一共有十个手指。大家在一起很快乐，做什么事都是你帮我，我帮他，做得都很好。\n\n有一天，大拇指生了气，它大声对食指、中指、无名指和小指说：\n\n\"你们不要再来找我，做事不要找我。玩，也不要来找我。\"\n\n大家看大拇指生了这么大的气，也不敢找它。到了吃饭时，它还在生气。\n\n不好了，大拇指不和大家一起做事，就什么东西也拿不到手上。\n\n饭也吃不到口里。吃不到东西，大家只好饿肚子了。" }
+      },
+      { id: 2, title: "第四十二课",
+        characters: [
+          {char:"张",meaning:"打开",emoji:"📖"},{char:"网",meaning:"网子",emoji:"🕸️"},
+          {char:"咬",meaning:"用牙",emoji:"😬"},{char:"力",meaning:"力气",emoji:"💪"},
+          {char:"啊",meaning:"叹词",emoji:"😮"},{char:"牙",meaning:"牙齿",emoji:"🦷"},
+          {char:"嘴",meaning:"嘴巴",emoji:"👄"},{char:"漂",meaning:"好看",emoji:"✨"}
+        ],
+        words:["张开","张嘴","一张","上网","鱼网","咬人","咬住","力气","用力","有力","好啊","是啊","对啊","牙齿","门牙","刷牙","嘴巴","张嘴","漂亮","漂流"],
+        story:{title:"小老鼠救狮子",text:"在大草原上，一头狮子正在睡觉。一只老鼠从这里走过，还在狮子头上的毛里坐了一会儿。\n\n\"是谁！\"狮子醒了，生气地一把捉住了老鼠：\"原来是你。也好，正好做我的午饭。\"\n\n老鼠哭着求狮子：\"放了我吧，我还有七个孩子在家等着我呢！你要是放了我，我会好好谢你，我是不会说假话的。\"\n\n狮子想了想，想到老鼠的七个孩子还在等妈妈，就把老鼠放掉了。\n\n过了一天，狮子出来找吃的东西。\n\n\"好香呀！\"狮子走过去，看见地上有一堆肉。正想去拿，一张大网一下子网住了它。动也不能动。狮子急得又喊又叫。\n\n这时，正好鼠妈妈和她的孩子们从这儿走过。\n\n\"呀！狮子大哥，你怎么在这里面呀？只有我能救你了。来！孩子们，我们一起来咬开这张网。\"\n\n咬啊，咬啊，老鼠妈妈和小老鼠们把大网咬开了。狮子从里面跳了出来。\n\n\"谢谢你，老鼠太太。谢谢你们，老鼠小朋友。\""}
+      },
+      { id: 3, title: "第四十三课",
+        characters: [
+          {char:"胡",meaning:"胡子",emoji:"🧔"},{char:"虎",meaning:"老虎",emoji:"🐯"},
+          {char:"贴",meaning:"粘贴",emoji:"📎"},{char:"才",meaning:"刚刚",emoji:"⏰"},
+          {char:"数",meaning:"数数",emoji:"🔢"},{char:"更",meaning:"更加",emoji:"⬆️"},
+          {char:"朵",meaning:"花朵",emoji:"🌺"},{char:"纸",meaning:"纸张",emoji:"📄"}
+        ],
+        words:["胡子","胡说","老虎","虎口","贴上","贴画","贴纸","才能","刚才","数学","数字","更好","更多","更大","花朵","一朵","白纸","报纸"],
+        story:{title:"大灰狼拔牙",text:"大灰狼的牙痛，它就去找大猩猩。大猩猩问它：\"你怎么啦？\"\n\n大灰狼说：\"我的牙痛得很，咬不动东西，天天都觉得肚子饿。很不好过。怎么办呢？\"\n\n大猩猩说：\"我来给你拔掉吧！\"\n\n大灰狼说：\"怎么拔呢？\"\n\n大猩猩想了想，说：\"是呀！用什么东西拔呢？\"\n\n正在这时，小猴子来了，大猩猩就请小猴子帮着想。\n\n小猴子想了想，说：\"有了。\"就去拿了一块石头，叫大灰狼用力咬。\n\n大灰狼不敢咬，说：\"你这哪里是给我拔牙，你是在害我呀！\"\n\n小猴子听了，回头就走。大猩猩也要走了。\n\n大灰狼着急了，想快把痛的牙拔了去，好去找东西吃。\n\n\"好吧，好吧。我咬，我咬。是不是能拔掉呢？\"\n\n小猴子说：\"你要用最大的力气咬，不用力是拔不掉的。\"\n\n大灰狼就用了最大的力气，大口一咬。\n\n\"啊呀！啊呀！不得了啦，好痛呀！\"大灰狼一边喊，一边叫，一边跳。原来，大灰一嘴的牙都咬掉了。\n\n大灰狼再也吃不了肉了，再也没有谁怕它了。"}
+      },
+      { id: 4, title: "第四十四课",
+        characters: [
+          {char:"圆",meaning:"圆形",emoji:"⭕"},{char:"圈",meaning:"圈子",emoji:"🔵"},
+          {char:"亲",meaning:"亲人",emoji:"👨‍👩‍👧"},{char:"脸",meaning:"面部",emoji:"😊"},
+          {char:"眼",meaning:"眼睛",emoji:"👁️"},{char:"睛",meaning:"眼珠",emoji:"👀"},
+          {char:"接",meaning:"接住",emoji:"🤝"},{char:"外",meaning:"外面",emoji:"🚪"}
+        ],
+        words:["圆圆","圆形","团圆","圆月","圈子","一圈","亲人","亲爱","母亲","父亲","小脸","圆脸","洗脸","眼睛","眼光","眼泪","接住","接着","外面","外边","门外"],
+        story:{title:"山羊爷爷的胡子",text:"山羊爷爷有一大把漂亮的胡子，它天天都对它的朋友们说：\"谁也没有我这么漂亮的胡子。狮子没有，老虎没有，老狼也没有。只有我山羊爷爷有。哈哈！你们是不是很想学我，也贴上一把胡子呢？\"\n\n狮子、老虎、老狼都在想：\"是啊，我们是没有山羊爷爷那么一大把漂亮的胡子。\"不过，谁也没想去贴胡子。\n\n可是，山羊爷爷的儿子对山羊爷爷说：\"老爸，你的胡子是很漂亮，我的胡子也很好看。可是，我的儿子小山羊天天哭。他说，他的小朋友们都在笑话他。大家都问他，你这么小，怎么就长了胡子呢？我不知道怎么说，他才不会哭，才能高兴起来？\"\n\n山羊爷爷想了又想：\"是呀，他这么小怎么也会长胡子呢？\"想来想去，山羊爷爷还是没有想明白。"}
+      },
+      { id: 5, title: "第四十五课",
+        characters: [
+          {char:"笨",meaning:"不灵",emoji:"🐢"},{char:"以",meaning:"可以",emoji:"✅"},
+          {char:"自",meaning:"自己",emoji:"🙋"},{char:"己",meaning:"自身",emoji:"👤"},
+          {char:"慢",meaning:"不快",emoji:"🐌"},{char:"难",meaning:"不易",emoji:"😣"},
+          {char:"练",meaning:"练习",emoji:"📝"},{char:"每",meaning:"每个",emoji:"📅"}
+        ],
+        words:["笨蛋","笨鸟","可以","以后","以前","自己","自动","自然","自学","慢慢","快慢","难过","难看","困难","练习","练字","每天","每人","每次","每年"],
+        story:{title:"画妈妈",text:"妈妈才出去了一会儿，小花就想妈妈了。\n\n\"我数一、二、三，妈妈就回来了。\"小花伸出三个手指头。\n\n\"一——\"，小花数了个长长的\"一\"，听一听，没有妈妈走路的声音。\n\n\"二——\"，小花数了个更长的\"二\"，听一听，没有妈妈叫门的声音。\n\n\"三——\"，小花数了个更长更长的\"三\"，她走到门口，用耳朵贴着门听，还是没有声音。\n\n妈妈没有回来，小花真想妈妈啊！\n\n\"我来画个妈妈吧，等我画好了，妈妈就回来了。\"小花拿出了纸和笔，先画了个很大的圆圈，小花亲了它一下：\"这是妈妈的脸。\"\n\n小花又在很大的圆圈里画上两个不大不小的圆圈，小花又亲了它们：\"这是妈妈的眼睛。\"\n\n接着，小花在不大不小的圆圈下面，画上一个小小的圆圈，小花亲了它一下：\"这是妈妈的嘴巴。\"\n\n正在这时，妈妈在门外喊小花了。妈妈回来啦，妈妈真的回来啦！\n\n\"妈妈，妈妈，我数一、二、三，你不回来。我亲亲你的脸，你就回来啦！\""}
+      },
+      { id: 6, title: "第四十六课",
+        characters: [
+          {char:"颗",meaning:"量词",emoji:"💎"},{char:"样",meaning:"样子",emoji:"🎭"},
+          {char:"因",meaning:"原因",emoji:"❓"},{char:"为",meaning:"因为",emoji:"💡"},
+          {char:"离",meaning:"离开",emoji:"👋"},{char:"近",meaning:"不远",emoji:"📍"},
+          {char:"象",meaning:"大象",emoji:"🐘"},{char:"船",meaning:"船只",emoji:"🚢"}
+        ],
+        words:["一颗","一样","样子","不一样","同样","因为","原因","因此","为了","为什么","离开","远离","离家","近处","走近","附近","大象","象牙","小船","开船","轮船"],
+        story:{title:"笨鸟先飞",text:"鸟妈妈有好多个孩子。孩子们都很聪明，只有最小的鸟弟弟很笨。大家都叫它\"小笨笨\"。\n\n鸟妈妈和哥哥、姐姐们都对小笨笨很好，什么事都帮着它做。\n\n可是，笨笨什么事都想自己去做。\n\n\"你们不要帮我。你们总是帮我，我就什么事也不会做了。只有自己学，才能学会。\"\n\n鸟妈妈想：\"对呀！到了学飞时，大家再帮它，也不能帮它飞，它总得自己飞呀。\"\n\n从那以后，很多事，鸟妈妈不再帮笨笨做，也不叫哥哥、姐姐帮它做。慢慢地，笨笨自己学会了做很多事。\n\n要学飞了。飞是很难学的。飞不好，会从天上摔下来，很痛很痛。\n\n\"笨笨能学会吗？\"鸟妈妈心里很着急。\n\n\"妈妈放心，我会多多地练习飞。我不怕摔，也不怕痛。我一定能学会的。请妈妈放心！\"笨笨说。\n\n从那以后，每天早上，笨笨都是最早一个起来。哥哥、姐姐还在睡觉、做梦时，妈妈就带着它一起练飞了。\n\n天天练，天天练，不知摔下来多少回，笨笨没有哭，没有喊，它很勇敢。鸟妈妈心里很高兴：\"笨笨一定能学会，还能飞得很好。\"\n\n真的，到了鸟妈妈叫大家一起飞的那天，小笨笨飞得最快，飞得最好，飞得最漂亮。\n\n笨笨笑了，妈妈笑了，哥哥、姐姐也笑了。"}
+      },
+      { id: 7, title: "第四十七课",
+        characters: [
+          {char:"闪",meaning:"发光",emoji:"⚡"},{char:"金",meaning:"金子",emoji:"🥇"},
+          {char:"美",meaning:"好看",emoji:"🌹"},{char:"丽",meaning:"美丽",emoji:"💐"},
+          {char:"当",meaning:"当作",emoji:"🎯"},{char:"扇",meaning:"扇子",emoji:"🪭"},
+          {char:"满",meaning:"满了",emoji:"🫙"},{char:"干",meaning:"干净",emoji:"🧹"}
+        ],
+        words:["闪闪","闪光","闪电","金色","金子","金鱼","美好","美丽","美人","美术","当时","当中","当心","扇子","电扇","风扇","满意","满月","满天","充满","干净","干活","能干","干旱"],
+        story:{title:"数星星",text:"夏天的晚上，毛毛和爸爸坐在门外草地上，抬头看天上的星星。\n\n\"数数看，看能数出多少颗星星。\"毛毛心里想。\n\n\"一、二、三、四、五……\"一下子就数错了。\"再从头数吧！\"\n\n\"一、二、三、四、五、六……\"又数错了。\n\n天上怎么有这么多星星，数来数去也数不清。\n\n\"爸爸，请你告诉我星星的事，好吗？\"\n\n\"好的。我们住的地球，还有土星、木星、水星、太阳、月亮啊，都是星球……\"\n\n\"太阳、月亮又不是星球！\"\n\n\"它们同样是星球。只是因为离我们太近，看起来就不像天上的星星那样小。\"\n\n\"那些星球上有人住吗？\"\n\n\"可能还没有。\"\n\n\"我想上去住。\"\n\n\"是啊！我们地球上住的人太多了，快要住不下了。不过，哪颗星球上可以住人，我们还不知道。\"\n\n\"等我长大了，我会坐着飞船到天上去。看看哪颗星球可以住人。等我找到了，我会回来接你和妈妈一起去住。\"\n\n\"好啊，好啊！我和妈妈会等着你来接我们。不过，学习不好的孩子是去不了的。\"\n\n\"爸爸放心，为了找到这颗星球，我也会好好学习的。\""}
+      },
+      { id: 8, title: "第四十八课",
+        characters: [
+          {char:"朝",meaning:"早晨",emoji:"🌅"},{char:"熊",meaning:"熊",emoji:"🐻"},
+          {char:"娃",meaning:"孩子",emoji:"👶"},{char:"汽",meaning:"蒸汽",emoji:"💨"},
+          {char:"车",meaning:"车辆",emoji:"🚗"},{char:"北",meaning:"北方",emoji:"🧭"},
+          {char:"京",meaning:"京城",emoji:"🏛️"},{char:"往",meaning:"去",emoji:"➡️"},
+          {char:"鸣",meaning:"叫声",emoji:"🔔"}
+        ],
+        words:["朝阳","朝着","熊猫","大熊","娃娃","汽车","汽水","火车","车上","车门","上车","下车","开车","北方","北风","东北","北京","南京","往前","往后","往上","来往","鸟鸣"],
+        story:{title:"宝宝读短文",text:"我爱画蓝蓝的天，白白的云，红红的太阳闪金光。我爱画绿绿的青草，美丽的花朵，小鸟在树上歌唱。我爱画可爱的小白兔，聪明的小猴子，长着胡子的山羊。我还爱画我的爷爷、奶奶、爸爸、妈妈和好朋友方方。我长大了要把画家当。\n\n下雪了，大地一片雪白。会画梅花的小狗在雪地上跑，会画竹叶的小鸡在雪地上跑，会画扇子的小鸭在雪地上跑，会画月牙的小马也在雪地上跑。跑呀跑，画呀画，一边跑，一边画。雪地上画满了梅花、竹叶、扇子和月牙。大家笑着说：\"哈哈哈，哈哈哈，我们都是小画家。不用笔，不用纸，画得满地都是画。\"\n\n面向着北方，背朝着南方。右手指着东，左手指着西。面向着东方，背朝着西方。右手指着南，左手指着北。面向着南方，背朝着北方。右手指着西，左手指着东。面向着西方，背朝着东方。右手指着北，左手指着南。"}
+      },
+      { id: 9, title: "第四十九课",
+        characters: [
+          {char:"鹿",meaning:"小鹿",emoji:"🦌"},{char:"森",meaning:"森林",emoji:"🌲"},
+          {char:"林",meaning:"树林",emoji:"🌳"},{char:"采",meaning:"采摘",emoji:"🧺"},
+          {char:"蘑",meaning:"蘑菇",emoji:"🍄"},{char:"菇",meaning:"菌类",emoji:"🍄"},
+          {char:"篮",meaning:"篮子",emoji:"🧺"},{char:"直",meaning:"笔直",emoji:"📏"}
+        ],
+        words:["小鹿","鹿角","森林","树林","竹林","采花","采摘","采药","蘑菇","花篮","竹篮","篮子","菜篮子","一直","直走","笔直"],
+        story:{title:"开火车",text:"今天上午，爸爸开会去了，妈妈上班去了，就只有我一个人在家里。\n\n\"干什么好呢？\"想来想去，还是看书吧。\n\n书里的小熊猫和我一样，也是一个人在家里自己玩，它很乖。\n\n\"我也能像小熊猫一样，自己好好地玩。\"我想，\"可是，玩什么游戏呢？\"\n\n正在这时候，布娃娃开着汽车过来了，汽车上还坐着小狗熊和牛伯伯。\n\n\"快快上我的汽车，不然，我开走了，你只能坐后面的火车了。\"布娃娃说。\n\n我一看，原来汽车的后面还有小猴子开的火车，上面坐满了我的朋友。有小花猫、小白兔、小黄狗、小老虎、小狮子、小羊、小鸡、小鸭，还有小白鹅。大家都快乐地唱着歌，都喊我和它们一起坐火车。\n\n\"好吧，我们一起坐火车吧！\"\n\n\"火车，火车，往哪儿开？\"\n\"往北京开。鸣——，到啦！北京到啦！\"\n\n\"火车，火车，往哪儿开？\"\n\"往南京开。鸣——，到啦！南京到啦！\"\n\n正玩得高兴时，妈妈和爸爸回来了：\"你这么高兴在干什么呢？\"\n\n\"我和小朋友们一起玩'开火车'的游戏呢！到了北京，又到了南京。太好玩啦！\"\n\n看到我这样能干，爸爸和妈妈都高兴地说：\"你真是长大了，能自己一个人在家里玩了。\""}
+      },
+      { id: 10, title: "第五十课",
+        characters: [
+          {char:"摸",meaning:"触碰",emoji:"✋"},{char:"苔",meaning:"青苔",emoji:"🟢"},
+          {char:"所",meaning:"地方",emoji:"🏠"},{char:"科",meaning:"学科",emoji:"🔬"},
+          {char:"灯",meaning:"灯光",emoji:"💡"},{char:"应",meaning:"应该",emoji:"✅"},
+          {char:"该",meaning:"应该",emoji:"☝️"},{char:"题",meaning:"题目",emoji:"📝"}
+        ],
+        words:["摸到","摸一摸","抚摸","青苔","所以","所有","科学","科目","外科","开灯","关灯","电灯","灯光","应该","应当","答应","题目","问题","出题"],
+        story:{title:"采蘑菇",text:"一大早，小花鹿就去找小白兔玩，小白兔说：\"我今天要去森林里采蘑菇，家里没有蘑菇了。\"\n\n\"那我们就一起去吧！\"小花鹿和小白兔就一起出了门。\n\n它们一边走，一边采蘑菇。采啊，采啊，篮子满了，放不下蘑菇了。\n\n\"我们回家吧，天也快晚了，妈妈还在家里等着我们呢！\"\n\n小花鹿和小白兔就一起往回走。\n\n走啊，走啊，怎么走也走不出森林，天也黑了。小花鹿和小白兔这才明白它们在森林里迷了路。\n\n怎么办？怎么办？天又黑，肚子又饿，心里又害怕。小花鹿急得马上就要哭出来了。\n\n\"不要哭，不要哭。我们来想想办法。\"\n\n想啊想……\"有了。我们家住在森林的北边，我们就一直往北走，不是就走出森林，就找到家了吗？\"小白兔说。\n\n\"可是哪边是北方呢？\"小花鹿说。\n\n\"是啊，哪边是北方呢？\"\n\n想啊想……\"对了。妈妈说过，在森林中找方向，可以用手去摸树干，长青苔的一面就是北方。\"小花鹿想起来了。\n\n小白兔和小花鹿就去摸树干。找到啦，找到啦！北方找到啦！它们就手拉着手，大声唱着歌往北走。\n\n\"小白兔——，小花鹿——，\"原来是妈妈们找来了。\n\n当小白兔和小花鹿把怎样想出这个办法告诉妈妈时，妈妈都说小白兔和小花鹿是又聪明，又勇敢，又能干的孩子。"}
+      }
+    ]
+  },
+  {
+    id: 6, title: "第六册", color: "#ffc800",
+    lessons: [
+      { id: 1, title: "第五十一课",
+        characters: [
+          {char:"停",meaning:"停下",emoji:"🛑"},{char:"而",meaning:"并且",emoji:"➡️"},
+          {char:"窗",meaning:"窗户",emoji:"🪟"},{char:"刚",meaning:"刚才",emoji:"⏱️"},
+          {char:"撞",meaning:"碰撞",emoji:"💥"},{char:"比",meaning:"比较",emoji:"⚖️"},
+          {char:"记",meaning:"记住",emoji:"📝"},{char:"串",meaning:"串起",emoji:"📿"},
+          {char:"被",meaning:"被子",emoji:"🛏️"},{char:"够",meaning:"足够",emoji:"👌"},
+          {char:"命",meaning:"生命",emoji:"❤️"},{char:"颈",meaning:"脖子",emoji:"🦒"},
+          {char:"定",meaning:"决定",emoji:"✅"},{char:"吓",meaning:"害怕",emoji:"😱"},
+          {char:"啄",meaning:"啄食",emoji:"🐦"},{char:"破",meaning:"破碎",emoji:"💔"}
+        ],
+        words:["停车","停放","停住","不停","窗口","窗子","天窗","门窗","刚才","刚刚","刚好","撞车","撞见","比一比","记住","记得","日记","笔记","一串","被子","够不够","不够","能够","人命","生命","救命","长颈鹿","一定","定时","吓人","啄米","啄木鸟","破了"],
+        story:{title:"长颈鹿的窗",text:"长颈鹿刚刚搬进新家，可是窗口太小，脖子伸不进去。\n\n它撞了撞窗，还是不够大。\n\n长颈鹿不停地想办法，用嘴啄，把窗口啄破了一点。\n\n一定要比别的动物更努力，才能记住这个教训。\n\n从此，长颈鹿有了自己的大窗子，每天朝着窗外看风景。"}
+      },
+      { id: 2, title: "第五十二课",
+        characters: [
+          {char:"湖",meaning:"湖水",emoji:"🏞️"},{char:"棵",meaning:"量词",emoji:"🌳"},
+          {char:"瓜",meaning:"西瓜",emoji:"🍉"},{char:"透",meaning:"透明",emoji:"💎"},
+          {char:"腿",meaning:"大腿",emoji:"🦵"},{char:"狐",meaning:"狐狸",emoji:"🦊"},
+          {char:"粗",meaning:"粗大",emoji:"💪"},{char:"竿",meaning:"竹竿",emoji:"🎋"},
+          {char:"狸",meaning:"狐狸",emoji:"🦊"},{char:"跟",meaning:"跟着",emoji:"👣"}
+        ],
+        words:["湖水","湖边","湖面","西湖","一棵","一棵树","西瓜","瓜子","南瓜","冬瓜","黄瓜","透明","看透","大腿","两条腿","狐狸","粗大","粗心","竹竿","鱼竿","跟着","跟上","跟前"],
+        story:{title:"狐狸和湖",text:"湖边有一棵大树，树下有一只狐狸，拿着粗粗的竹竿钓鱼。\n\n湖水很透明，狐狸看见一条大鱼，跟着它走来走去。\n\n狐狸把竹竿伸进水里，用两条腿站稳，等啊等。\n\n终于，一条大鱼上钩了，狐狸高兴地跑回家。"}
+      },
+      { id: 3, title: "第五十三课",
+        characters: [
+          {char:"钓",meaning:"钓鱼",emoji:"🎣"},{char:"甩",meaning:"甩开",emoji:"🤸"},
+          {char:"钩",meaning:"挂钩",emoji:"🪝"},{char:"忘",meaning:"忘记",emoji:"🤔"},
+          {char:"装",meaning:"假装",emoji:"🎭"},{char:"饵",meaning:"鱼饵",emoji:"🪱"},
+          {char:"算",meaning:"计算",emoji:"🔢"},{char:"桶",meaning:"水桶",emoji:"🪣"},
+          {char:"坏",meaning:"坏了",emoji:"👎"},{char:"忙",meaning:"忙碌",emoji:"🏃"}
+        ],
+        words:["钓鱼","钓竿","钓到","甩开","甩手","甩掉","鱼钩","钩子","忘了","忘记","忘掉","难忘","装好","假装","装满","鱼饵","算了","打算","算数","计算","水桶","一桶水","坏了","坏人","坏事","好坏","帮忙","连忙","急忙"],
+        story:{title:"钓鱼忘了鱼饵",text:"小猫拿着钓竿和水桶，去湖边钓鱼。\n\n它把鱼钩甩进水里，等了很久，一条鱼也没钓到。\n\n算了，一定有问题。小猫想了想，忘了装鱼饵！\n\n坏了，没有鱼饵，鱼怎么会上钩。\n\n小猫连忙找来鱼饵，这才钓到了大鱼，装满了水桶。"}
+      },
+      { id: 4, title: "第五十四课",
+        characters: [
+          {char:"洗",meaning:"洗手",emoji:"🧼"},{char:"忽",meaning:"忽然",emoji:"⚡"},
+          {char:"然",meaning:"自然",emoji:"🌿"},{char:"全",meaning:"全部",emoji:"💯"},
+          {char:"条",meaning:"量词",emoji:"📏"},{char:"怪",meaning:"奇怪",emoji:"👻"},
+          {char:"物",meaning:"动物",emoji:"🐾"},{char:"猪",meaning:"小猪",emoji:"🐷"},
+          {char:"影",meaning:"影子",emoji:"👤"},{char:"信",meaning:"相信",emoji:"✉️"}
+        ],
+        words:["洗手","洗脸","洗头","洗澡","洗干净","忽然","然后","自然","果然","当然","全部","全家","全都","安全","一条","奇怪","怪物","怪事","动物","植物","事物","小猪","猪肉","猪八戒","影子","电影","人影","信心","相信","写信","自信"],
+        story:{title:"影子怪物",text:"小猪洗完澡，忽然看见墙上有一个怪怪的影子。\n\n小猪信了，以为是怪物来了，全身发抖。\n\n然后，自然光来了，影子不见了。\n\n原来只是自己的影子，当然没有怪物。\n\n小猪笑了，对自己说：要有信心，不要怕！"}
+      },
+      { id: 5, title: "第五十五课",
+        characters: [
+          {char:"呼",meaning:"呼喊",emoji:"📢"},{char:"结",meaning:"结冰",emoji:"🧊"},
+          {char:"冰",meaning:"冰块",emoji:"❄️"},{char:"枝",meaning:"树枝",emoji:"🌿"},
+          {char:"发",meaning:"发生",emoji:"💫"},{char:"抖",meaning:"发抖",emoji:"🥶"},
+          {char:"暖",meaning:"温暖",emoji:"☀️"},{char:"屋",meaning:"房屋",emoji:"🏠"},
+          {char:"法",meaning:"方法",emoji:"📋"},{char:"件",meaning:"量词",emoji:"📦"},
+          {char:"于",meaning:"关于",emoji:"📌"}
+        ],
+        words:["呼叫","呼喊","呼吸","结冰","结果","结束","冰块","冰山","冰水","冰冷","树枝","枝头","枝叶","发现","发生","发明","发光","头发","发抖","抖动","暖和","温暖","暖风","房屋","屋顶","屋里","办法","方法","一件","条件","文件","由于","关于","对于","于是"],
+        story:{title:"冬天的树枝",text:"冬天来了，屋外的树枝结冰了，小鸟发抖着叫：呼，好冷啊！\n\n小松鼠暖暖地窝在屋里，拿出一件厚厚的外套说：穿上这件，你就不冷了。\n\n小鸟穿上外套，发现了一个好办法：于是它也帮其他小鸟找暖和的东西。\n\n因为关心朋友，是最暖心的方法。"}
+      },
+      { id: 6, title: "第五十六课",
+        characters: [
+          {char:"松",meaning:"松树",emoji:"🌲"},{char:"蓝",meaning:"蓝色",emoji:"🔵"},
+          {char:"落",meaning:"落下",emoji:"🍂"},{char:"流",meaning:"流水",emoji:"🌊"},
+          {char:"凉",meaning:"凉快",emoji:"🌬️"},{char:"帽",meaning:"帽子",emoji:"🧢"},
+          {char:"热",meaning:"炎热",emoji:"🔥"},{char:"劳",meaning:"劳动",emoji:"⛏️"},
+          {char:"汗",meaning:"出汗",emoji:"💦"},{char:"别",meaning:"别的",emoji:"🚫"}
+        ],
+        words:["松树","松鼠","松开","放松","轻松","蓝天","蓝色","蓝天白云","落下","落叶","落地","流水","流泪","河流","流星","凉快","凉水","凉风","冰凉","帽子","草帽","热天","热水","热爱","热情","劳动","辛劳","汗水","出汗","流汗","别人","别的","特别","分别"],
+        story:{title:"劳动的夏天",text:"夏天好热，农民伯伯在蓝天下劳动，汗水流啊流。\n\n他戴上草帽，凉快了一点。\n\n松树旁边，凉风吹来，落叶飘下来。\n\n别停下来，劳动的人最伟大！\n\n傍晚，河流边，凉风吹走了一天的热气。"}
+      },
+      { id: 7, title: "第五十七课",
+        characters: [
+          {char:"伤",meaning:"受伤",emoji:"🤕"},{char:"感",meaning:"感谢",emoji:"🙏"},
+          {char:"助",meaning:"帮助",emoji:"🆘"},{char:"恩",meaning:"恩情",emoji:"💝"},
+          {char:"窝",meaning:"鸟窝",emoji:"🪺"},{char:"呵",meaning:"哈哈",emoji:"😄"},
+          {char:"另",meaning:"另外",emoji:"👉"},{char:"奇",meaning:"奇怪",emoji:"❓"}
+        ],
+        words:["受伤","伤心","伤口","伤害","感谢","感动","感觉","感情","帮助","助人","助手","恩人","感恩","鸟窝","窝里","被窝","呵呵","另外","另一个","奇怪","好奇","奇妙"],
+        story:{title:"受伤的小鸟",text:"一只小鸟受伤了，掉在地上，感觉非常痛。\n\n另一只小鸟飞过来，帮助它回到鸟窝里休息。\n\n受伤的小鸟很感恩，说：呵呵，谢谢你，真奇妙，我有那么好的朋友！\n\n朋友说：帮助朋友，是一件很自然的事。"}
+      },
+      { id: 8, title: "第五十八课",
+        characters: [
+          {char:"巢",meaning:"鸟巢",emoji:"🪹"},{char:"病",meaning:"生病",emoji:"🤒"},
+          {char:"喂",meaning:"喂食",emoji:"🍼"},{char:"松",meaning:"轻松",emoji:"🌲"},
+          {char:"冰",meaning:"冰块",emoji:"❄️"},{char:"热",meaning:"炎热",emoji:"🔥"},
+          {char:"熟",meaning:"熟了",emoji:"🍎"},{char:"友",meaning:"朋友",emoji:"🤝"}
+        ],
+        words:["鸟巢","巢穴","生病","病人","看病","喂食","喂饭","喂鸟","轻松","放松","冰冷","冰块","炎热","热水","成熟","熟悉","熟人","朋友","友好","友情"],
+        story:{title:"鸟巢里的病鸟",text:"一只鸟生病了，躺在鸟巢里，不吃不喝。\n\n朋友们轮流来喂食，松松软软的米，热热的汤。\n\n冰冷的水也喂了一些。\n\n慢慢地，鸟儿熟悉了药的味道，病好了。\n\n友好的朋友，是最好的医生。"}
+      },
+      { id: 9, title: "第五十九课",
+        characters: [
+          {char:"哈",meaning:"哈哈",emoji:"😄"},{char:"呆",meaning:"发呆",emoji:"😶"},
+          {char:"脑",meaning:"大脑",emoji:"🧠"},{char:"床",meaning:"小床",emoji:"🛏️"},
+          {char:"钟",meaning:"钟表",emoji:"🕐"},{char:"准",meaning:"准备",emoji:"✔️"},
+          {char:"拨",meaning:"拨动",emoji:"📞"},{char:"闹",meaning:"热闹",emoji:"🎉"},
+          {char:"懒",meaning:"懒惰",emoji:"😴"},{char:"醒",meaning:"叫醒",emoji:"⏰"}
+        ],
+        words:["哈哈","哈哈大笑","发呆","呆住","呆头呆脑","脑袋","大脑","脑子","电脑","起床","床上","床头","钟表","时钟","闹钟","准备","准时","准许","拨打","拨动","热闹","闹事","懒惰","偷懒","叫醒","醒来"],
+        story:{title:"懒虫叫醒了",text:"小猪最懒，每天睡到很晚才醒来，闹钟响了也不起床。\n\n妈妈拨动闹钟，调准了时间，第二天一早就叫醒他。\n\n小猪呆住了，脑袋还没清醒，就被叫了起来。\n\n哈哈，床头的闹钟真厉害！\n\n从那以后，小猪不懒了，每天准时起床。"}
+      },
+      { id: 10, title: "第六十课",
+        characters: [
+          {char:"摘",meaning:"摘下",emoji:"✋"},{char:"苹",meaning:"苹果",emoji:"🍎"},
+          {char:"捡",meaning:"捡起",emoji:"🤲"},{char:"红",meaning:"红色",emoji:"🔴"},
+          {char:"让",meaning:"让开",emoji:"🤚"},{char:"先",meaning:"先后",emoji:"1️⃣"},
+          {char:"站",meaning:"站立",emoji:"🧍"},{char:"礼",meaning:"礼貌",emoji:"🎁"}
+        ],
+        words:["摘下","摘花","摘苹果","采摘","苹果","苹果树","捡到","捡起来","脸红","红花","红日","红色","让开","让路","让给","不让","先生","先后","先走","首先","站立","站起","站好","礼貌","礼物","有礼貌"],
+        story:{title:"摘苹果",text:"苹果树上，红红的苹果熟了。\n\n小明先站在树下，摘了一个大苹果。\n\n他捡起地上落下来的苹果，让给奶奶先吃。\n\n奶奶说：你真有礼貌，是个好孩子。\n\n小明开心地站在树下，又摘了好多苹果送给大家。"}
+      }
+    ]
+  }
+];
+
+// ===================================================================
+// PINYIN MAP
+// ===================================================================
+const PINYIN = {
+  // Book 1
+  人:"rén",口:"kǒu",大:"dà",中:"zhōng",小:"xiǎo",哭:"kū",笑:"xiào",一:"yī",上:"shàng",下:"xià",爸:"bà",妈:"mā",天:"tiān",太:"tài",月:"yuè",二:"èr",
+  地:"dì",阳:"yáng",亮:"liàng",星:"xīng",云:"yún",火:"huǒ",水:"shuǐ",三:"sān",
+  土:"tǔ",山:"shān",石:"shí",木:"mù",我:"wǒ",好:"hǎo",有:"yǒu",田:"tián",
+  牛:"niú",羊:"yáng",聪:"cōng",耳:"ěr",目:"mù",心:"xīn",和:"hé",四:"sì",
+  明:"míng",头:"tóu",眉:"méi",鼻:"bí",手:"shǒu",花:"huā",树:"shù",五:"wǔ",
+  草:"cǎo",叶:"yè",日:"rì",风:"fēng",雨:"yǔ",的:"de",孩:"hái",六:"liù",
+  白:"bái",红:"hóng",是:"shì",家:"jiā",多:"duō",唱:"chàng",子:"zǐ",七:"qī",
+  爱:"ài",爷:"yé",奶:"nǎi",少:"shǎo",歌:"gē",不:"bù",朋:"péng",八:"bā",
+  宝:"bǎo",在:"zài",学:"xué",书:"shū",游:"yóu",友:"yǒu",儿:"ér",九:"jiǔ",
+  贝:"bèi",生:"shēng",习:"xí",看:"kàn",戏:"xì",字:"zì",气:"qì",十:"shí",
+  // Book 2
+  会:"huì",见:"jiàn",早:"zǎo",雪:"xuě",鸡:"jī",绿:"lǜ",做:"zuò",黄:"huáng",鱼:"yú",吃:"chī",飞:"fēi",要:"yào",跑:"pǎo",青:"qīng",鸟:"niǎo",他:"tā",
+  们:"men",春:"chūn",夏:"xià",秋:"qiū",冬:"dōng",季:"jì",都:"dōu",个:"gè",
+  狗:"gǒu",猫:"māo",蓝:"lán",落:"luò",真:"zhēn",开:"kāi",说:"shuō",也:"yě",
+  马:"mǎ",米:"mǐ",哥:"gē",姐:"jiě",来:"lái",黑:"hēi",去:"qù",出:"chū",
+  跳:"tiào",着:"zhe",了:"le",你:"nǐ",又:"yòu",弟:"dì",妹:"mèi",东:"dōng",
+  就:"jiù",还:"hái",快:"kuài",得:"de",西:"xī",乐:"lè",到:"dào",起:"qǐ",
+  玩:"wán",捉:"zhuō",迷:"mí",球:"qiú",很:"hěn",高:"gāo",鸭:"yā",哈:"hā",
+  方:"fāng",爬:"pá",藏:"cáng",兴:"xìng",向:"xiàng",对:"duì",能:"néng",叫:"jiào",
+  变:"biàn",问:"wèn",成:"chéng",再:"zài",急:"jí",教:"jiāo",门:"mén",只:"zhǐ",
+  回:"huí",公:"gōng",打:"dǎ",兔:"tù",请:"qǐng",过:"guò",吗:"ma",泳:"yǒng",
+  // Book 3
+  虫:"chóng",把:"bǎ",驮:"tuó",鹅:"é",河:"hé",礼:"lǐ",背:"bèi",拿:"ná",里:"lǐ",后:"hòu",谢:"xiè",边:"biān",貌:"mào",班:"bān",幼:"yòu",园:"yuán",
+  照:"zhào",婆:"pó",甜:"tián",梦:"mèng",老:"lǎo",盆:"pén",尺:"chǐ",刀:"dāo",
+  时:"shí",正:"zhèng",文:"wén",具:"jù",笔:"bǐ",画:"huà",长:"cháng",放:"fàng",
+  用:"yòng",总:"zǒng",尾:"wěi",巴:"bā",玉:"yù",尖:"jiān",竹:"zhú",苗:"miáo",
+  听:"tīng",话:"huà",猴:"hóu",猩:"xīng",给:"gěi",进:"jìn",告:"gào",电:"diàn",
+  诉:"sù",念:"niàn",饭:"fàn",乖:"guāi",想:"xiǎng",面:"miàn",住:"zhù",前:"qián",
+  从:"cóng",同:"tóng",没:"méi",送:"sòng",果:"guǒ",工:"gōng",厂:"chǎng",产:"chǎn",
+  动:"dòng",关:"guān",找:"zhǎo",按:"àn",年:"nián",节:"jié",桃:"táo",荷:"hé",
+  菊:"jú",梅:"méi",冷:"lěng",它:"tā",怕:"pà",躲:"duǒ",勇:"yǒng",敢:"gǎn",
+  堆:"duī",仗:"zhàng",柳:"liǔ",农:"nóng",民:"mín",伯:"bó",种:"zhòng",最:"zuì",
+  // Book 4
+  片:"piàn",吹:"chuī",浇:"jiāo",燕:"yàn",睡:"shuì",醒:"xǐng",蛙:"wā",呱:"guā",南:"nán",椅:"yǐ",坐:"zuò",身:"shēn",吧:"ba",桌:"zhuō",布:"bù",抱:"bào",
+  摔:"shuāi",声:"shēng",谁:"shuí",呢:"ne",认:"rèn",原:"yuán",痛:"tòng",喊:"hǎn",
+  狼:"láng",啦:"la",赶:"gǎn",救:"jiù",假:"jiǎ",掉:"diào",路:"lù",碰:"pèng",
+  哪:"nǎ",呀:"ya",两:"liǎng",逃:"táo",走:"zǒu",她:"tā",点:"diǎn",音:"yīn",
+  可:"kě",伸:"shēn",缝:"fèng",夹:"jiā",根:"gēn",棍:"gùn",丢:"diū",灰:"huī",
+  萝:"luó",卜:"bo",熟:"shú",拔:"bá",拉:"lā",鼠:"shǔ",咕:"gū",咚:"dōng",
+  倒:"dǎo",抬:"tái",晚:"wǎn",左:"zuǒ",右:"yòu",怎:"zěn",么:"me",办:"bàn",
+  知:"zhī",道:"dào",午:"wǔ",这:"zhè",座:"zuò",洞:"dòng",什:"shén",害:"hài",
+  付:"fù",顶:"dǐng",角:"jiǎo",死:"sǐ",扑:"pū",期:"qī",带:"dài",分:"fēn",
+  清:"qīng",今:"jīn",昨:"zuó",光:"guāng",阴:"yīn",错:"cuò",指:"zhǐ",拇:"mǔ",
+  // Book 5
+  食:"shí",无:"wú",名:"míng",加:"jiā",共:"gòng",事:"shì",帮:"bāng",饿:"è",肚:"dù",狮:"shī",觉:"jué",毛:"máo",求:"qiú",等:"děng",香:"xiāng",肉:"ròu",
+  张:"zhāng",网:"wǎng",咬:"yǎo",力:"lì",呵:"hē",牙:"yá",嘴:"zuǐ",漂:"piào",
+  胡:"hú",虎:"hǔ",贴:"tiē",才:"cái",数:"shù",更:"gèng",朵:"duǒ",纸:"zhǐ",
+  圆:"yuán",圈:"quān",亲:"qīn",脸:"liǎn",眼:"yǎn",睛:"jīng",接:"jiē",外:"wài",
+  笨:"bèn",以:"yǐ",自:"zì",己:"jǐ",慢:"màn",难:"nán",练:"liàn",每:"měi",
+  颗:"kē",样:"yàng",因:"yīn",为:"wèi",离:"lí",近:"jìn",象:"xiàng",船:"chuán",
+  闪:"shǎn",金:"jīn",美:"měi",丽:"lì",当:"dāng / dàng",扇:"shān / shàn",满:"mǎn",干:"gān / gàn",
+  朝:"zhāo / cháo",熊:"xióng",娃:"wá",汽:"qì",车:"chē",北:"běi",京:"jīng",往:"wǎng",鸣:"míng",
+  鹿:"lù",森:"sēn",林:"lín",采:"cǎi",蘑:"mó",菇:"gū",篮:"lán",直:"zhí",
+  摸:"mō",苔:"tái",所:"suǒ",科:"kē",灯:"dēng",应:"yīng",该:"gāi",题:"tí",
+  // Book 6
+  停:"tíng",而:"ér",窗:"chuāng",刚:"gāng",撞:"zhuàng",比:"bǐ",记:"jì",串:"chuàn",被:"bèi",够:"gòu",命:"mìng",颈:"jǐng",定:"dìng",吓:"xià",啄:"zhuó",破:"pò",
+  湖:"hú",棵:"kē",瓜:"guā",透:"tòu",腿:"tuǐ",狐:"hú",粗:"cū",竿:"gān",狸:"lí",跟:"gēn",
+  钓:"diào",甩:"shuǎi",钩:"gōu",忘:"wàng",装:"zhuāng",饵:"ěr",算:"suàn",桶:"tǒng",坏:"huài",忙:"máng",
+  洗:"xǐ",忽:"hū",然:"rán",全:"quán",条:"tiáo",怪:"guài",物:"wù",猪:"zhū",影:"yǐng",信:"xìn",
+  呼:"hū",结:"jié",冰:"bīng",枝:"zhī",发:"fā",抖:"dǒu",暖:"nuǎn",屋:"wū",法:"fǎ",件:"jiàn",于:"yú",
+  松:"sōng",流:"liú",凉:"liáng",帽:"mào",热:"rè",劳:"láo",汗:"hàn",别:"bié",
+  伤:"shāng",感:"gǎn",助:"zhù",恩:"ēn",窝:"wō",啊:"a",另:"lìng",奇:"qí",
+  巢:"cháo",病:"bìng",喂:"wèi",
+  哈:"hā",呆:"dāi",脑:"nǎo",床:"chuáng",钟:"zhōng",准:"zhǔn",拨:"bō",闹:"nào",懒:"lǎn",
+  摘:"zhāi",苹:"píng",捡:"jiǎn",让:"ràng",先:"xiān",站:"zhàn"
+};
+
+function getPinyin(char) { return PINYIN[char] || ''; }
+
+// ===================================================================
+// STATE
+// ===================================================================
+let state = loadState();
+
+function defaultState() {
+  return {
+    xp: 0,
+    streak: 0,
+    lastDate: null,
+    lessons: {},
+    treasures: {},
+    unlockedBooks: {} // { "bookId": true } when jumped to via button
+  };
+}
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem('chineseTutor'));
+    return s || defaultState();
+  } catch { return defaultState(); }
+}
+
+function saveState() {
+  localStorage.setItem('chineseTutor', JSON.stringify(state));
+}
+
+function getLessonKey(bookId, lessonId) {
+  return `${bookId}-${lessonId}`;
+}
+
+function isLessonCompleted(bookId, lessonId) {
+  return state.lessons[getLessonKey(bookId, lessonId)]?.completed || false;
+}
+
+function getLessonStars(bookId, lessonId) {
+  return state.lessons[getLessonKey(bookId, lessonId)]?.stars || 0;
+}
+
+function isLessonUnlocked(bookId, lessonId) {
+  if (bookId === 1 && lessonId === 1) return true;
+  const book = BOOKS.find(b => b.id === bookId);
+  const idx = book.lessons.findIndex(l => l.id === lessonId);
+  // First lesson of this book — also unlock if jumped to via button
+  if (idx === 0 && state.unlockedBooks && state.unlockedBooks[bookId]) return true;
+  // Previous lesson in same book
+  if (idx > 0) {
+    return isLessonCompleted(bookId, book.lessons[idx - 1].id);
+  }
+  // First lesson of next book — need last lesson of prev book
+  const prevBook = BOOKS.find(b => b.id === bookId - 1);
+  if (prevBook) {
+    const lastLesson = prevBook.lessons[prevBook.lessons.length - 1];
+    return isLessonCompleted(prevBook.id, lastLesson.id);
+  }
+  return false;
+}
+
+// ===================================================================
+// SPEECH
+// ===================================================================
+let _zhVoice = null;
+const _voicePriority = [
+  'Xiaoxiao','晓晓','Yunxi','云希','Xiaoyi','晓伊','Xiaochen','晓辰',
+  'Google 普通话','Google Chinese (Simplified)',
+  'Ting-Ting','Sin-ji','Meijia','zh-CN'
+];
+function _pickVoice() {
+  const voices = speechSynthesis.getVoices();
+  const zh = voices.filter(v => v.lang.startsWith('zh'));
+  if (!zh.length) return;
+  for (const name of _voicePriority) {
+    const v = zh.find(v => v.name.includes(name));
+    if (v) { _zhVoice = v; return; }
+  }
+  _zhVoice = zh[0];
+}
+if (window.speechSynthesis) {
+  speechSynthesis.onvoiceschanged = _pickVoice;
+  _pickVoice();
+}
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN';
+  if (_zhVoice) u.voice = _zhVoice;
+  u.rate = 0.8;
+  u.pitch = 1.1;
+  window.speechSynthesis.speak(u);
+}
+
+// ===================================================================
+// RENDER HOME (Study Path)
+// ===================================================================
+function renderHome() {
+  showScreen('homeScreen');
+  updateStreak();
+
+  const totalXp = state.xp;
+  document.getElementById('xpLabel').textContent = totalXp;
+  document.getElementById('xpBarFill').style.width = `${Math.min(100, (totalXp % 100))}%`;
+  document.getElementById('streakCount').textContent = state.streak;
+
+  const container = document.getElementById('pathContainer');
+  container.innerHTML = '';
+
+  BOOKS.forEach(book => {
+    // Section header with jump button
+    const header = document.createElement('div');
+    header.className = 'section-header';
+    header.id = `book-${book.id}`;
+    header.innerHTML = `
+      <button class="jump-here-btn" onclick="scrollToBook(${book.id})">▶ 跳到这里</button>
+      <h2 style="background:${book.color};box-shadow:0 4px 0 rgba(0,0,0,0.2)">${book.title}</h2>
+    `;
+    container.appendChild(header);
+
+    // Zigzag offsets for path nodes
+    const offsets = [0, -60, 0, 60, 0, -60, 0, 60, 0, -60];
+
+    book.lessons.forEach((lesson, idx) => {
+      // Connector line (skip idx===5 — treasure block already adds it)
+      if (idx > 0 && idx !== 5) {
+        const conn = document.createElement('div');
+        conn.className = 'path-connector' + (isLessonCompleted(book.id, lesson.id) || isLessonUnlocked(book.id, lesson.id) ? ' done' : '');
+        container.appendChild(conn);
+      }
+
+      // Treasure box after lesson 5 (idx === 4)
+      if (idx === 5) {
+        const treasure = getTreasure(book.id);
+        const tUnlocked = isTreasureUnlocked(book.id);
+        const tConn = document.createElement('div');
+        tConn.className = 'path-connector' + (tUnlocked ? ' done' : '');
+        container.appendChild(tConn);
+        const tRow = document.createElement('div');
+        tRow.className = 'path-row';
+        const tBtn = document.createElement('button');
+        const tState = treasure.opened ? 'opened' : tUnlocked ? 'available' : 'locked';
+        tBtn.className = `treasure-node ${tState}`;
+        tBtn.innerHTML = treasure.opened ? '💎' : '🎁';
+        if (tUnlocked && !treasure.opened) tBtn.onclick = () => openTreasure(book.id);
+        const tWrap = document.createElement('div');
+        tWrap.style.textAlign = 'center';
+        tWrap.appendChild(tBtn);
+        const tLabel = document.createElement('div');
+        tLabel.className = 'node-label';
+        tLabel.textContent = treasure.opened ? `已获得 ${treasure.diamonds}💎` : `宝箱 🎁`;
+        tWrap.appendChild(tLabel);
+        tRow.appendChild(tWrap);
+        container.appendChild(tRow);
+        const tConn2 = document.createElement('div');
+        tConn2.className = 'path-connector' + (isLessonUnlocked(book.id, lesson.id) ? ' done' : '');
+        container.appendChild(tConn2);
+      }
+
+      const row = document.createElement('div');
+      row.className = 'path-row';
+      row.style.transform = `translateX(${offsets[idx % offsets.length]}px)`;
+
+      const completed = isLessonCompleted(book.id, lesson.id);
+      const unlocked = isLessonUnlocked(book.id, lesson.id);
+      const stars = getLessonStars(book.id, lesson.id);
+
+      const node = document.createElement('button');
+      node.className = 'path-node ' + (completed ? 'completed' : unlocked ? 'current' : 'locked');
+      if (unlocked && !completed) {
+        node.style.background = book.color;
+        node.style.boxShadow = `0 4px 0 rgba(0,0,0,0.2)`;
+      }
+
+      if (completed) {
+        node.innerHTML = '✓';
+      } else if (unlocked) {
+        node.innerHTML = getLessonIcon(lesson.id);
+      } else {
+        node.innerHTML = '🔒';
+      }
+
+      // Stars
+      if (completed && stars > 0) {
+        const starsDiv = document.createElement('div');
+        starsDiv.className = 'stars';
+        for (let i = 0; i < 3; i++) {
+          const s = document.createElement('span');
+          s.textContent = i < stars ? '⭐' : '☆';
+          starsDiv.appendChild(s);
+        }
+        node.appendChild(starsDiv);
+      }
+
+      if (unlocked || completed) {
+        node.onclick = () => startLesson(book.id, lesson.id);
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.style.textAlign = 'center';
+      wrapper.appendChild(node);
+
+      const label = document.createElement('div');
+      label.className = 'node-label';
+      label.textContent = lesson.title;
+      wrapper.appendChild(label);
+
+      // Reading button for lessons with story/sentence content
+      if ((unlocked || completed) && (lesson.story || lesson.sentences)) {
+        const readBtn = document.createElement('button');
+        readBtn.className = 'read-path-btn';
+        readBtn.textContent = '📖 读';
+        readBtn.onclick = (e) => { e.stopPropagation(); openReadingScreen(book.id, lesson.id); };
+        wrapper.appendChild(readBtn);
+      }
+
+      row.appendChild(wrapper);
+      container.appendChild(row);
+    });
+  });
+}
+
+function getLessonIcon(id) {
+  const icons = ['📖', '⭐', '🌟', '🎯', '🌸', '🌿', '🏠', '💕', '💎', '🎭'];
+  return icons[(id - 1) % icons.length];
+}
+
+function updateStreak() {
+  const today = new Date().toDateString();
+  if (state.lastDate !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    if (state.lastDate === yesterday) {
+      // streak continues
+    } else if (state.lastDate !== today) {
+      state.streak = 0;
+    }
+  }
+}
+
+// ===================================================================
+// LESSON ENGINE
+// ===================================================================
+let currentLesson = null;
+let exercises = [];
+let exerciseIndex = 0;
+let correctCount = 0;
+let totalExercises = 0;
+let awaitingNext = false;
+let selectedAnswer = false;
+
+function startLesson(bookId, lessonId) {
+  const book = BOOKS.find(b => b.id === bookId);
+  const lesson = book.lessons.find(l => l.id === lessonId);
+  currentLesson = { bookId, lessonId, lesson };
+
+  exercises = generateExercises(lesson, book);
+  exerciseIndex = 0;
+  correctCount = 0;
+  totalExercises = exercises.length;
+  awaitingNext = false;
+
+  showScreen('lessonScreen');
+  renderExercise();
+}
+
+function generateExercises(lesson, book) {
+  const ex = [];
+  const chars = lesson.characters;
+
+  // Phase 1: Introduce characters (show 2-3 at a time)
+  const introGroupSize = Math.min(3, chars.length);
+  for (let i = 0; i < Math.min(chars.length, 6); i++) {
+    ex.push({ type: 'intro', char: chars[i] });
+  }
+
+  // Phase 2: Character → Emoji matching (pick the right emoji for the character)
+  const shuffled1 = [...chars].sort(() => Math.random() - 0.5).slice(0, 4);
+  shuffled1.forEach(c => {
+    const distractors = chars.filter(x => x.char !== c.char).sort(() => Math.random() - 0.5).slice(0, 3);
+    ex.push({
+      type: 'char-to-emoji',
+      target: c,
+      options: shuffle([c, ...distractors])
+    });
+  });
+
+  // Phase 3: Emoji → Character (hear/see emoji, pick the right character)
+  const shuffled2 = [...chars].sort(() => Math.random() - 0.5).slice(0, 4);
+  shuffled2.forEach(c => {
+    const distractors = chars.filter(x => x.char !== c.char).sort(() => Math.random() - 0.5).slice(0, 3);
+    ex.push({
+      type: 'emoji-to-char',
+      target: c,
+      options: shuffle([c, ...distractors])
+    });
+  });
+
+  // Phase 4: Word reading (if words available)
+  if (lesson.words && lesson.words.length > 0) {
+    const wordSample = [...lesson.words].sort(() => Math.random() - 0.5).slice(0, 3);
+    wordSample.forEach(word => {
+      // Pick distractors from other words
+      const distractors = lesson.words.filter(w => w !== word).sort(() => Math.random() - 0.5).slice(0, 2);
+      // For word exercises: hear the word, pick the right characters
+      ex.push({
+        type: 'word-listen',
+        word: word,
+        options: shuffle([word, ...distractors])
+      });
+    });
+  }
+
+  return ex;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function renderExercise() {
+  if (exerciseIndex >= exercises.length) {
+    completeLesson();
+    return;
+  }
+
+  const ex = exercises[exerciseIndex];
+  const body = document.getElementById('lessonBody');
+  const progress = ((exerciseIndex) / exercises.length) * 100;
+  document.getElementById('lessonProgressFill').style.width = progress + '%';
+
+  hideFeedback();
+  selectedAnswer = false;
+
+  const btn = document.getElementById('actionBtn');
+
+  switch (ex.type) {
+    case 'intro':
+      renderIntro(ex, body);
+      btn.textContent = '继续';
+      btn.className = 'action-btn btn-green';
+      awaitingNext = true;
+      break;
+    case 'char-to-emoji':
+      renderCharToEmoji(ex, body);
+      btn.textContent = '选一选';
+      btn.className = 'action-btn btn-disabled';
+      awaitingNext = false;
+      break;
+    case 'emoji-to-char':
+      renderEmojiToChar(ex, body);
+      btn.textContent = '选一选';
+      btn.className = 'action-btn btn-disabled';
+      awaitingNext = false;
+      break;
+    case 'word-listen':
+      renderWordListen(ex, body);
+      btn.textContent = '选一选';
+      btn.className = 'action-btn btn-disabled';
+      awaitingNext = false;
+      break;
+  }
+}
+
+// ----- INTRO -----
+function renderIntro(ex, body) {
+  const pinyin = getPinyin(ex.char.char);
+  body.innerHTML = `
+    <div class="intro-card">
+      ${getMascotSVG('happy', 'mascot-small')}
+      <div class="intro-emoji">${ex.char.emoji}</div>
+      <div class="intro-char" onclick="speak('${ex.char.char}')">${ex.char.char}</div>
+      ${pinyin ? `<div class="intro-pinyin">${pinyin}</div>` : ''}
+      <button class="audio-btn" onclick="speak('${ex.char.char}')">🔊</button>
+      <div class="tap-hint">点击听发音</div>
+    </div>
+  `;
+  setTimeout(() => speak(ex.char.char), 400);
+}
+
+// ----- CHAR → EMOJI -----
+function renderCharToEmoji(ex, body) {
+  body.innerHTML = `
+    ${getMascotSVG('thinking', 'mascot-small')}
+    <div class="question-prompt">这是什么？</div>
+    <div class="question-text" onclick="speak('${ex.target.char}')">${ex.target.char}</div>
+    <button class="audio-btn" onclick="speak('${ex.target.char}')" style="margin-bottom:16px">🔊</button>
+    <div class="choices-grid" id="choicesGrid">
+      ${ex.options.map(o => `
+        <button class="choice-emoji-btn" data-char="${o.char}" onclick="selectEmoji(this, '${ex.target.char}', '${o.char}')">
+          ${o.emoji}
+        </button>
+      `).join('')}
+    </div>
+  `;
+  setTimeout(() => speak(ex.target.char), 300);
+}
+
+// ----- EMOJI → CHAR -----
+function renderEmojiToChar(ex, body) {
+  body.innerHTML = `
+    ${getMascotSVG('thinking', 'mascot-small')}
+    <div class="question-prompt">听一听，选一选</div>
+    <div class="intro-emoji">${ex.target.emoji}</div>
+    <button class="audio-btn" onclick="speak('${ex.target.char}')" style="margin-bottom:16px">🔊</button>
+    <div class="choices" id="choicesGrid">
+      ${ex.options.map(o => `
+        <button class="choice-btn" data-char="${o.char}" onclick="selectChar(this, '${ex.target.char}', '${o.char}')">
+          ${o.char}
+        </button>
+      `).join('')}
+    </div>
+  `;
+  setTimeout(() => speak(ex.target.char), 300);
+}
+
+// ----- WORD LISTEN -----
+function renderWordListen(ex, body) {
+  body.innerHTML = `
+    ${getMascotSVG('happy', 'mascot-small')}
+    <div class="question-prompt">听一听，选词语</div>
+    <button class="audio-btn" onclick="speak('${ex.word}')" style="margin-bottom:20px; width:72px; height:72px; font-size:32px">🔊</button>
+    <div class="choices" id="choicesGrid">
+      ${ex.options.map(o => `
+        <button class="choice-btn" onclick="selectWord(this, '${ex.word}', '${o}')">
+          ${o}
+        </button>
+      `).join('')}
+    </div>
+  `;
+  setTimeout(() => speak(ex.word), 300);
+}
+
+// ===================================================================
+// ANSWER HANDLING
+// ===================================================================
+function selectEmoji(btn, correct, selected) {
+  if (selectedAnswer) return;
+  selectedAnswer = true;
+  handleAnswer(btn, correct === selected, correct, 'emoji');
+}
+
+function selectChar(btn, correct, selected) {
+  if (selectedAnswer) return;
+  selectedAnswer = true;
+  handleAnswer(btn, correct === selected, correct, 'char');
+}
+
+function selectWord(btn, correct, selected) {
+  if (selectedAnswer) return;
+  selectedAnswer = true;
+  handleAnswer(btn, correct === selected, correct, 'word');
+}
+
+function handleAnswer(btn, isCorrect, correctAnswer, type) {
+  const grid = document.getElementById('choicesGrid');
+  const buttons = grid.querySelectorAll('button');
+
+  if (isCorrect) {
+    btn.classList.add('correct');
+    correctCount++;
+    showFeedback(true, '太棒了！');
+    speak(correctAnswer);
+    buttons.forEach(b => b.style.pointerEvents = 'none');
+    const actionBtn = document.getElementById('actionBtn');
+    actionBtn.textContent = '继续';
+    actionBtn.className = 'action-btn btn-green';
+    awaitingNext = true;
+  } else {
+    // Disable all buttons briefly, flash wrong
+    buttons.forEach(b => b.style.pointerEvents = 'none');
+    btn.classList.add('wrong');
+    showFeedback(false, '再试试！');
+    speak(correctAnswer);
+    // Re-enable after 1s so user can retry
+    setTimeout(() => {
+      btn.classList.remove('wrong');
+      btn.style.pointerEvents = '';
+      buttons.forEach(b => b.style.pointerEvents = '');
+      hideFeedback();
+      selectedAnswer = false;
+    }, 1000);
+  }
+}
+
+function showFeedback(correct, text) {
+  const bar = document.getElementById('feedbackBar');
+  const icon = document.getElementById('feedbackIcon');
+  const txt = document.getElementById('feedbackText');
+
+  bar.className = 'feedback-bar show ' + (correct ? 'correct-fb' : 'wrong-fb');
+  icon.textContent = correct ? '✅' : '❌';
+  txt.textContent = text;
+}
+
+function hideFeedback() {
+  document.getElementById('feedbackBar').className = 'feedback-bar';
+}
+
+function handleAction() {
+  if (awaitingNext) {
+    exerciseIndex++;
+    renderExercise();
+  }
+}
+
+// ===================================================================
+// LESSON COMPLETE
+// ===================================================================
+function completeLesson() {
+  const accuracy = correctCount / Math.max(1, totalExercises - currentLesson.lesson.characters.length);
+  // Characters.length = intro slides which don't count as "correct/wrong"
+  const quizCount = totalExercises - Math.min(currentLesson.lesson.characters.length, 6);
+  const quizAccuracy = correctCount / Math.max(1, quizCount);
+
+  let stars = 1;
+  if (quizAccuracy >= 0.9) stars = 3;
+  else if (quizAccuracy >= 0.7) stars = 2;
+
+  const xpEarned = stars; // 1x diamonds for listening (1-3 based on stars)
+
+  const key = getLessonKey(currentLesson.bookId, currentLesson.lessonId);
+  const prev = state.lessons[key];
+  if (!prev || prev.stars < stars) {
+    state.lessons[key] = { completed: true, stars };
+  } else {
+    state.lessons[key].completed = true;
+  }
+
+  state.xp += xpEarned;
+  const today = new Date().toDateString();
+  if (state.lastDate !== today) {
+    state.streak++;
+    state.lastDate = today;
+  }
+  saveState();
+
+  // Show complete screen
+  const starEmojis = ['', '⭐', '⭐⭐', '⭐⭐⭐'];
+  document.getElementById('completeStars').textContent = starEmojis[stars];
+  document.getElementById('completeSubtitle').textContent = `${currentLesson.lesson.title} 完成了！`;
+  document.getElementById('completeXp').textContent = `+${xpEarned} 💎`;
+
+  // Show 读故事 button if this lesson has a story or sentences
+  const hasReading = currentLesson.lesson.story || currentLesson.lesson.sentences;
+  document.getElementById('readStoryBtn').style.display = hasReading ? 'block' : 'none';
+
+  showScreen('completeScreen');
+  launchConfetti();
+  speak('太棒了');
+}
+
+function exitLesson() {
+  goHome();
+}
+
+function goHome() {
+  renderHome();
+}
+
+// ===================================================================
+// SCREEN MANAGEMENT
+// ===================================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ===================================================================
+// MASCOT SVG (inline piggy)
+// ===================================================================
+function getMascotSVG(mood, cls) {
+  const mouthHappy = `<path d="M42 65 Q50 73 58 65" stroke="#c0607a" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+  const mouthThink = `<ellipse cx="50" cy="66" rx="4" ry="3" fill="#c0607a"/>`;
+  const mouthSad = `<path d="M42 69 Q50 63 58 69" stroke="#c0607a" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+
+  let mouth = mouthHappy;
+  if (mood === 'thinking') mouth = mouthThink;
+  else if (mood === 'sad') mouth = mouthSad;
+
+  const blush = mood === 'happy' ? `
+    <ellipse cx="32" cy="60" rx="7" ry="4" fill="#ff9eb5" opacity="0.55"/>
+    <ellipse cx="68" cy="60" rx="7" ry="4" fill="#ff9eb5" opacity="0.55"/>
+  ` : '';
+
+  return `<svg class="${cls || 'mascot'}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <!-- Ears (round pig ears) -->
+    <ellipse cx="26" cy="26" rx="13" ry="11" fill="#f7a8b8"/>
+    <ellipse cx="74" cy="26" rx="13" ry="11" fill="#f7a8b8"/>
+    <ellipse cx="26" cy="27" rx="8" ry="6.5" fill="#f28fa4"/>
+    <ellipse cx="74" cy="27" rx="8" ry="6.5" fill="#f28fa4"/>
+    <!-- Face -->
+    <ellipse cx="50" cy="54" rx="33" ry="30" fill="#fdd5df"/>
+    <!-- Eyes -->
+    <ellipse cx="38" cy="46" rx="6" ry="6.5" fill="white"/>
+    <ellipse cx="62" cy="46" rx="6" ry="6.5" fill="white"/>
+    <circle cx="39" cy="46" r="3.5" fill="#2a2a2a"/>
+    <circle cx="63" cy="46" r="3.5" fill="#2a2a2a"/>
+    <circle cx="40" cy="44.5" r="1.2" fill="white"/>
+    <circle cx="64" cy="44.5" r="1.2" fill="white"/>
+    <!-- Snout -->
+    <ellipse cx="50" cy="61" rx="11" ry="8" fill="#f28fa4"/>
+    <circle cx="46" cy="61" r="2.8" fill="#c0607a" opacity="0.7"/>
+    <circle cx="54" cy="61" r="2.8" fill="#c0607a" opacity="0.7"/>
+    <!-- Mouth -->
+    ${mouth}
+    ${blush}
+  </svg>`;
+}
+
+// ===================================================================
+// CONFETTI
+// ===================================================================
+function launchConfetti() {
+  const container = document.getElementById('confettiContainer');
+  container.innerHTML = '';
+  const colors = ['#ff4b4b', '#58cc02', '#1cb0f6', '#ffc800', '#ce82ff', '#ff9600'];
+  for (let i = 0; i < 60; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+    piece.style.animationDelay = (Math.random() * 0.5) + 's';
+    piece.style.width = (6 + Math.random() * 8) + 'px';
+    piece.style.height = (6 + Math.random() * 8) + 'px';
+    container.appendChild(piece);
+  }
+  setTimeout(() => container.innerHTML = '', 4000);
+}
+
+// ===================================================================
+// INDEXEDDB — RECORDING STORAGE
+// ===================================================================
+let _db = null;
+function initDB() {
+  if (_db) return Promise.resolve(_db);
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('chineseTutorDB', 1);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('recordings'))
+        d.createObjectStore('recordings', { keyPath: 'id' });
+    };
+    req.onsuccess = e => { _db = e.target.result; res(_db); };
+    req.onerror = e => rej(e);
+  });
+}
+function dbSaveRecording(bookId, lessonId, blob, duration) {
+  const id = `${bookId}-${lessonId}-${Date.now()}`;
+  return initDB().then(d => new Promise((res, rej) => {
+    const tx = d.transaction('recordings', 'readwrite');
+    tx.objectStore('recordings').put({ id, bookId, lessonId, blob, duration, date: new Date().toLocaleDateString('zh-CN') });
+    tx.oncomplete = () => res(id);
+    tx.onerror = rej;
+  }));
+}
+function dbGetRecordings(bookId, lessonId) {
+  return initDB().then(d => new Promise((res, rej) => {
+    const result = [];
+    const tx = d.transaction('recordings', 'readonly');
+    tx.objectStore('recordings').openCursor().onsuccess = e => {
+      const c = e.target.result;
+      if (c) { if (c.value.bookId === bookId && c.value.lessonId === lessonId) result.push(c.value); c.continue(); }
+      else res(result);
+    };
+    tx.onerror = rej;
+  }));
+}
+function dbGetById(id) {
+  return initDB().then(d => new Promise((res, rej) => {
+    const req = d.transaction('recordings', 'readonly').objectStore('recordings').get(id);
+    req.onsuccess = e => res(e.target.result);
+    req.onerror = rej;
+  }));
+}
+
+// ===================================================================
+// READING / STORY SCREEN
+// ===================================================================
+let currentReading = null;
+let mediaRecorder = null;
+let recChunks = [];
+let recBlob = null;
+let recTimer = null;
+let recSeconds = 0;
+
+function openReadingScreen(bookId, lessonId) {
+  const book = BOOKS.find(b => b.id === bookId);
+  const lesson = book.lessons.find(l => l.id === lessonId);
+  currentReading = { bookId, lessonId, lesson };
+
+  showScreen('readingScreen');
+
+  const hasStory = lesson.story || lesson.sentences;
+  const title = lesson.story ? lesson.story.title : lesson.title + ' · 读句子';
+  document.getElementById('readingTitle').textContent = title;
+
+  const scroll = document.getElementById('storyScroll');
+  if (lesson.story) {
+    const paras = lesson.story.text.split('\n\n').filter(p => p.trim());
+    scroll.innerHTML = `<div class="story-title">${lesson.story.title}</div>
+      <div class="story-body">${paras.map(p => `<p>${p.trim()}</p>`).join('')}</div>`;
+  } else if (lesson.sentences) {
+    scroll.innerHTML = lesson.sentences.map((s, i) =>
+      `<div class="sentence-item"><span class="sentence-num">${i + 1}.</span>${s}</div>`
+    ).join('');
+  } else {
+    scroll.innerHTML = `<div style="text-align:center;padding:40px;color:var(--gray)">📖 故事内容即将上线！</div>`;
+  }
+
+  recBlob = null; recSeconds = 0;
+  document.getElementById('recStatus').textContent = '点击 🔊 听故事，点击 ⏺ 开始录音';
+  document.getElementById('recTimer').textContent = '';
+  document.getElementById('playBtn').disabled = true;
+  document.getElementById('saveBtn').disabled = true;
+  document.getElementById('recordBtn').className = 'rec-btn btn-record';
+  loadSavedList(bookId, lessonId);
+}
+
+function openReadingFromComplete() {
+  const { bookId, lessonId } = currentLesson;
+  openReadingScreen(bookId, lessonId);
+}
+
+function exitReading() {
+  window.speechSynthesis.cancel();
+  if (mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
+  showScreen('homeScreen');
+  renderHome();
+}
+
+function listenStory() {
+  window.speechSynthesis.cancel();
+  const lesson = currentReading.lesson;
+  const text = lesson.story ? lesson.story.text.replace(/\n/g, '') : lesson.sentences ? lesson.sentences.join('') : '';
+  if (!text) return;
+  document.getElementById('recStatus').textContent = '🔊 正在朗读...';
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN'; u.rate = 0.75; u.pitch = 1.1;
+  u.onend = () => {
+    state.xp += 3; // 3x diamonds for reading
+    document.getElementById('xpLabel').textContent = state.xp;
+    saveState();
+    document.getElementById('recStatus').textContent = '朗读完毕！+3 💎 现在轮到你了 🎤';
+  };
+  window.speechSynthesis.speak(u);
+}
+
+async function toggleRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    stopRecording();
+  } else {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recChunks = []; recSeconds = 0;
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => recChunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        recBlob = new Blob(recChunks, { type: 'audio/webm' });
+        stream.getTracks().forEach(t => t.stop());
+        document.getElementById('recStatus').textContent = '录音完成！可以播放或保存 💾';
+        document.getElementById('recTimer').textContent = formatTime(recSeconds);
+        document.getElementById('playBtn').disabled = false;
+        document.getElementById('saveBtn').disabled = false;
+        document.getElementById('recordBtn').className = 'rec-btn btn-record';
+      };
+      mediaRecorder.start();
+      recTimer = setInterval(() => {
+        recSeconds++;
+        document.getElementById('recTimer').textContent = formatTime(recSeconds);
+      }, 1000);
+      document.getElementById('recordBtn').className = 'rec-btn btn-record recording';
+      document.getElementById('recStatus').textContent = '🔴 录音中... 再次点击停止';
+    } catch (e) {
+      document.getElementById('recStatus').textContent = '⚠️ 无法访问麦克风，请检查浏览器权限';
+    }
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+  clearInterval(recTimer);
+}
+
+function playRecording() {
+  if (!recBlob) return;
+  const url = URL.createObjectURL(recBlob);
+  const audio = new Audio(url); audio.play();
+  document.getElementById('recStatus').textContent = '▶ 播放中...';
+  audio.onended = () => document.getElementById('recStatus').textContent = '播放完毕！';
+}
+
+async function saveCurrentRecording() {
+  if (!recBlob) return;
+  try {
+    await dbSaveRecording(currentReading.bookId, currentReading.lessonId, recBlob, recSeconds);
+    state.xp += 2; // 2x diamonds for making a record
+    document.getElementById('xpLabel').textContent = state.xp;
+    saveState();
+    document.getElementById('recStatus').textContent = '✅ 录音已保存！+2 💎';
+    document.getElementById('saveBtn').disabled = true;
+    loadSavedList(currentReading.bookId, currentReading.lessonId);
+  } catch (e) {
+    document.getElementById('recStatus').textContent = '保存失败，请重试。';
+  }
+}
+
+async function loadSavedList(bookId, lessonId) {
+  try {
+    const recs = await dbGetRecordings(bookId, lessonId);
+    const list = document.getElementById('savedList');
+    if (!recs.length) { list.innerHTML = ''; return; }
+    list.innerHTML = `<div style="font-size:12px;color:var(--gray-dark);font-weight:700;margin-bottom:4px">已保存录音 (${recs.length})</div>` +
+      recs.slice(-5).reverse().map(r => `
+        <div class="saved-item">
+          <span style="flex:1">${r.date} · ${formatTime(r.duration)}</span>
+          <button class="saved-play-btn" onclick="playStoredRecording('${r.id}')">▶ 播放</button>
+        </div>`).join('');
+  } catch (e) {}
+}
+
+async function playStoredRecording(id) {
+  try {
+    const rec = await dbGetById(id);
+    if (!rec) return;
+    const audio = new Audio(URL.createObjectURL(rec.blob));
+    audio.play();
+    document.getElementById('recStatus').textContent = `▶ 播放 ${rec.date} 的录音...`;
+  } catch (e) {}
+}
+
+function formatTime(s) {
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+
+// ===================================================================
+// TREASURE BOXES
+// ===================================================================
+function getTreasure(bookId) {
+  if (!state.treasures) state.treasures = {};
+  if (!state.treasures[bookId]) {
+    const d = 25 + Math.floor(Math.random() * 51); // 25–75
+    state.treasures[bookId] = { diamonds: d, opened: false };
+    saveState();
+  }
+  return state.treasures[bookId];
+}
+
+function isTreasureUnlocked(bookId) {
+  const book = BOOKS.find(b => b.id === bookId);
+  // Unlocked when lesson 5 of this book is completed
+  return isLessonCompleted(bookId, book.lessons[4].id);
+}
+
+function openTreasure(bookId) {
+  const treasure = getTreasure(bookId);
+  if (treasure.opened) return;
+  treasure.opened = true;
+  state.xp += treasure.diamonds;
+  saveState();
+  document.getElementById('treasureAmount').textContent = `+${treasure.diamonds} 💎`;
+  document.getElementById('treasureOverlay').classList.add('show');
+  launchConfetti();
+  speak('宝箱开启');
+}
+
+function closeTreasureOverlay() {
+  document.getElementById('treasureOverlay').classList.remove('show');
+  renderHome();
+}
+
+function scrollToBook(bookId) {
+  // Mark this book as unlocked so its first lesson node becomes clickable
+  if (!state.unlockedBooks) state.unlockedBooks = {};
+  state.unlockedBooks[bookId] = true;
+  saveState();
+  // Re-render path so the node appears unlocked
+  renderHome();
+  // Scroll to the book section after re-render
+  setTimeout(() => {
+    const container = document.getElementById('pathContainer');
+    const el = document.getElementById(`book-${bookId}`);
+    if (el && container) {
+      const elTop = el.getBoundingClientRect().top;
+      const containerTop = container.getBoundingClientRect().top;
+      container.scrollBy({ top: elTop - containerTop - 16, behavior: 'smooth' });
+    }
+  }, 50);
+}
+
+// ===================================================================
+// PARENT MODE
+// ===================================================================
+function openParentMode() {
+  const body = document.getElementById('parentModalBody');
+  body.innerHTML = `
+    <div class="modal-section-title">进度管理</div>
+    <button class="btn-danger" onclick="confirmReset()">🗑️ 清除所有学习进度</button>
+    <div class="modal-section-title">课程选择（直接跳转）</div>
+    ${BOOKS.map(book => `
+      <div class="book-section">
+        <div class="book-label" style="background:${book.color}">${book.title}</div>
+        ${book.lessons.map(lesson => `
+          <div class="lesson-row">
+            <div class="lesson-info">
+              <div class="lesson-row-title">${lesson.title}</div>
+              <div class="lesson-chars-preview">${lesson.characters.map(c=>c.char).join(' ')}</div>
+            </div>
+            ${(lesson.story || lesson.sentences) ? `<button class="jump-btn" style="background:var(--purple);margin-right:4px" onclick="closeParentMode();openReadingScreen(${book.id},${lesson.id})">📖</button>` : ''}
+            <button class="jump-btn" onclick="jumpToLesson(${book.id},${lesson.id})">进入</button>
+          </div>
+        `).join('')}
+      </div>
+    `).join('')}
+  `;
+  document.getElementById('parentModal').classList.add('show');
+}
+
+function closeParentMode() {
+  document.getElementById('parentModal').classList.remove('show');
+}
+
+function closeParentIfOutside(e) {
+  if (e.target === document.getElementById('parentModal')) closeParentMode();
+}
+
+function confirmReset() {
+  if (confirm('确定要清除所有学习进度吗？此操作无法撤销。')) {
+    localStorage.removeItem('chineseTutor');
+    state = defaultState();
+    saveState();
+    closeParentMode();
+    renderHome();
+  }
+}
+
+function jumpToLesson(bookId, lessonId) {
+  closeParentMode();
+  startLesson(bookId, lessonId);
+}
+
+// ===================================================================
+// INIT
+// ===================================================================
+renderHome();
+</script>
+</body>
+</html>
