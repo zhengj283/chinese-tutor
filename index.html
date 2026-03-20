@@ -585,6 +585,8 @@ html, body {
 .rec-btn.btn-listen { background: var(--blue); box-shadow: 0 3px 0 var(--blue-dark); }
 .rec-btn.btn-record { background: var(--red); box-shadow: 0 3px 0 #cc0000; }
 .rec-btn.btn-record.recording { background: #880000; animation: recPulse 1s infinite; }
+.rec-btn.btn-record.paused { background: #cc6600; animation: recPulse 1.5s infinite; }
+.rec-btn.btn-listen.speaking { background: #1565c0; animation: recPulse 1.2s infinite; }
 .rec-btn.btn-play { background: var(--green); box-shadow: 0 3px 0 var(--green-dark); }
 .rec-btn.btn-save { background: var(--gold); box-shadow: 0 3px 0 #c49a00; }
 @keyframes recPulse { 0%,100%{box-shadow:0 3px 0 #cc0000,0 0 0 0 rgba(255,75,75,0.5)} 50%{box-shadow:0 3px 0 #cc0000,0 0 0 10px rgba(255,75,75,0)} }
@@ -796,10 +798,10 @@ html, body {
     <div class="rec-status" id="recStatus">点击 🔊 听故事，点击 ⏺ 开始录音</div>
     <div class="rec-timer" id="recTimer"></div>
     <div class="rec-controls">
-      <button class="rec-btn btn-listen" id="listenBtn" onclick="listenStory()" title="朗读">🔊</button>
+      <button class="rec-btn btn-listen" id="listenBtn" onclick="toggleListenStory()" title="朗读/暂停">🔊</button>
       <button class="rec-btn btn-record" id="recordBtn" onclick="toggleRecording()" title="录音">⏺</button>
       <button class="rec-btn btn-play" id="playBtn" onclick="playRecording()" title="播放录音" disabled>▶</button>
-      <button class="rec-btn btn-save" id="saveBtn" onclick="saveCurrentRecording()" title="保存录音" disabled>💾</button>
+      <button class="rec-btn btn-save" id="saveBtn" onclick="saveCurrentRecording()" title="下载录音" disabled>💾</button>
     </div>
     <div id="savedList" class="saved-list"></div>
   </div>
@@ -1701,34 +1703,163 @@ function isLessonUnlocked(bookId, lessonId) {
 // SPEECH
 // ===================================================================
 let _zhVoice = null;
+// Priority: neural/online > enhanced > standard. Covers Windows, macOS, iOS, Chrome
 const _voicePriority = [
-  'Xiaoxiao','晓晓','Yunxi','云希','Xiaoyi','晓伊','Xiaochen','晓辰',
-  'Google 普通话','Google Chinese (Simplified)',
-  'Ting-Ting','Sin-ji','Meijia','zh-CN'
+  // Microsoft neural (Windows/Edge)
+  'Xiaoxiao Online', 'Xiaoyi Online', 'Xiaochen Online', 'Yunxi Online',
+  'Xiaoxiao Natural', 'Xiaoyi Natural',
+  '晓晓', '晓伊', '晓辰', '云希',
+  'Xiaoxiao', 'Xiaoyi', 'Xiaochen', 'Yunxi',
+  // iOS / macOS — female voices preferred for kids
+  'Tian-Tian', 'Tian-tian',         // iOS zh-CN female (best iOS voice)
+  'Yu-shu',                          // iOS zh-CN female
+  'Li-mu',                           // iOS zh-CN male
+  'Ting-Ting', 'Meijia', 'Lili',    // macOS
+  // Google (Chrome on Android/desktop)
+  'Google 普通话', 'Google Chinese (Simplified)',
+  // Fallbacks
+  'Huihui', 'Kangkang'
 ];
+
 function _pickVoice() {
+  if (!window.speechSynthesis) return;
   const voices = speechSynthesis.getVoices();
-  const zh = voices.filter(v => v.lang.startsWith('zh'));
-  if (!zh.length) return;
+  if (!voices.length) return false;
+  const zh = voices.filter(v => v.lang && (v.lang.startsWith('zh') || v.lang.startsWith('cmn')));
+  if (!zh.length) return false;
+  // Priority matching
   for (const name of _voicePriority) {
     const v = zh.find(v => v.name.includes(name));
-    if (v) { _zhVoice = v; return; }
+    if (v) { _zhVoice = v; return true; }
   }
-  _zhVoice = zh[0];
+  // Prefer any neural/enhanced voice
+  const neural = zh.find(v => /Online|Natural|Enhanced|Premium/i.test(v.name));
+  if (neural) { _zhVoice = neural; return true; }
+  // Prefer zh-CN
+  const cn = zh.find(v => v.lang === 'zh-CN' || v.lang === 'zh_CN');
+  _zhVoice = cn || zh[0];
+  return true;
 }
-if (window.speechSynthesis) {
-  speechSynthesis.onvoiceschanged = _pickVoice;
-  _pickVoice();
-}
-function speak(text) {
+
+// Robust voice init: Safari doesn't support onvoiceschanged, iOS returns empty initially
+(function initVoices() {
   if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
+  // Try immediately
+  if (_pickVoice()) return;
+  // Listen for voiceschanged (Chrome, Edge, Firefox)
+  if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = _pickVoice;
+  }
+  // Polling fallback for Safari/iOS (tries for up to 5 seconds)
+  let attempts = 0;
+  const poll = setInterval(() => {
+    attempts++;
+    if (_pickVoice() || attempts >= 25) clearInterval(poll);
+  }, 200);
+})();
+
+// Helper: create a configured utterance
+function _makeUtterance(text, rate, pitch) {
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'zh-CN';
   if (_zhVoice) u.voice = _zhVoice;
-  u.rate = 0.8;
-  u.pitch = 1.1;
+  u.rate = rate || 0.78;
+  u.pitch = pitch || 1.05;
+  u.volume = 1.0;
+  return u;
+}
+
+// Context-aware speaking: single chars spoken slowly and repeated
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const isSingleChar = text.length === 1;
+  const isWord = text.length >= 2 && text.length <= 4;
+  if (isSingleChar) {
+    const u = _makeUtterance(text, 0.6, 1.05);
+    u.onend = () => {
+      setTimeout(() => {
+        window.speechSynthesis.speak(_makeUtterance(text, 0.85, 1.0));
+      }, 400);
+    };
+    window.speechSynthesis.speak(u);
+  } else if (isWord) {
+    window.speechSynthesis.speak(_makeUtterance(text, 0.7, 1.05));
+  } else {
+    window.speechSynthesis.speak(_makeUtterance(text, 0.78, 1.05));
+  }
+}
+
+// ===================================================================
+// CHUNKED STORY READING (works on iOS Safari — no pause/resume API)
+// ===================================================================
+// Splits text into sentence-sized chunks and plays them sequentially.
+// "Pause" = stop after current chunk. "Resume" = continue from next chunk.
+let _storyChunks = [];
+let _storyChunkIdx = 0;
+let _storyPlaying = false;
+let _storyPaused = false;
+
+function _splitIntoChunks(text) {
+  // Split on Chinese punctuation and newlines into natural sentence chunks
+  const raw = text.split(/([。！？；\n]+)/);
+  const chunks = [];
+  for (let i = 0; i < raw.length; i += 2) {
+    const sentence = (raw[i] || '') + (raw[i + 1] || '');
+    const trimmed = sentence.trim();
+    if (trimmed) chunks.push(trimmed);
+  }
+  // If no punctuation found, split into ~30 char segments at commas
+  if (chunks.length <= 1 && text.length > 30) {
+    const fallback = text.split(/([，,、]+)/);
+    const result = [];
+    let buf = '';
+    for (let i = 0; i < fallback.length; i++) {
+      buf += fallback[i];
+      if (buf.length >= 20 || i === fallback.length - 1) {
+        if (buf.trim()) result.push(buf.trim());
+        buf = '';
+      }
+    }
+    return result.length ? result : [text];
+  }
+  return chunks.length ? chunks : [text];
+}
+
+function _playNextChunk() {
+  if (!_storyPlaying || _storyPaused) return;
+  if (_storyChunkIdx >= _storyChunks.length) {
+    // All done
+    _storyPlaying = false;
+    _storyPaused = false;
+    const btn = document.getElementById('listenBtn');
+    if (btn) { btn.textContent = '🔊'; btn.className = 'rec-btn btn-listen'; }
+    state.xp += 3;
+    document.getElementById('xpLabel').textContent = state.xp;
+    saveState();
+    document.getElementById('recStatus').textContent = '朗读完毕！+3 💎 现在轮到你了 🎤';
+    return;
+  }
+  const chunk = _storyChunks[_storyChunkIdx];
+  const u = _makeUtterance(chunk, 0.78, 1.05);
+  u.onend = () => {
+    _storyChunkIdx++;
+    // Small pause between sentences for natural rhythm
+    setTimeout(_playNextChunk, 250);
+  };
+  u.onerror = () => {
+    _storyChunkIdx++;
+    setTimeout(_playNextChunk, 250);
+  };
   window.speechSynthesis.speak(u);
+}
+
+function stopStoryReading() {
+  window.speechSynthesis.cancel();
+  _storyPlaying = false;
+  _storyPaused = false;
+  _storyChunks = [];
+  _storyChunkIdx = 0;
 }
 
 // ===================================================================
@@ -2273,50 +2404,8 @@ function launchConfetti() {
 }
 
 // ===================================================================
-// INDEXEDDB — RECORDING STORAGE
+// RECORDING STORAGE (download-based, tracked in localStorage)
 // ===================================================================
-let _db = null;
-function initDB() {
-  if (_db) return Promise.resolve(_db);
-  return new Promise((res, rej) => {
-    const req = indexedDB.open('chineseTutorDB', 1);
-    req.onupgradeneeded = e => {
-      const d = e.target.result;
-      if (!d.objectStoreNames.contains('recordings'))
-        d.createObjectStore('recordings', { keyPath: 'id' });
-    };
-    req.onsuccess = e => { _db = e.target.result; res(_db); };
-    req.onerror = e => rej(e);
-  });
-}
-function dbSaveRecording(bookId, lessonId, blob, duration) {
-  const id = `${bookId}-${lessonId}-${Date.now()}`;
-  return initDB().then(d => new Promise((res, rej) => {
-    const tx = d.transaction('recordings', 'readwrite');
-    tx.objectStore('recordings').put({ id, bookId, lessonId, blob, duration, date: new Date().toLocaleDateString('zh-CN') });
-    tx.oncomplete = () => res(id);
-    tx.onerror = rej;
-  }));
-}
-function dbGetRecordings(bookId, lessonId) {
-  return initDB().then(d => new Promise((res, rej) => {
-    const result = [];
-    const tx = d.transaction('recordings', 'readonly');
-    tx.objectStore('recordings').openCursor().onsuccess = e => {
-      const c = e.target.result;
-      if (c) { if (c.value.bookId === bookId && c.value.lessonId === lessonId) result.push(c.value); c.continue(); }
-      else res(result);
-    };
-    tx.onerror = rej;
-  }));
-}
-function dbGetById(id) {
-  return initDB().then(d => new Promise((res, rej) => {
-    const req = d.transaction('recordings', 'readonly').objectStore('recordings').get(id);
-    req.onsuccess = e => res(e.target.result);
-    req.onerror = rej;
-  }));
-}
 
 // ===================================================================
 // READING / STORY SCREEN
@@ -2353,11 +2442,15 @@ function openReadingScreen(bookId, lessonId) {
   }
 
   recBlob = null; recSeconds = 0;
+  stopStoryReading();
   document.getElementById('recStatus').textContent = '点击 🔊 听故事，点击 ⏺ 开始录音';
   document.getElementById('recTimer').textContent = '';
   document.getElementById('playBtn').disabled = true;
   document.getElementById('saveBtn').disabled = true;
+  document.getElementById('recordBtn').textContent = '⏺';
   document.getElementById('recordBtn').className = 'rec-btn btn-record';
+  document.getElementById('listenBtn').textContent = '🔊';
+  document.getElementById('listenBtn').className = 'rec-btn btn-listen';
   loadSavedList(bookId, lessonId);
 }
 
@@ -2367,64 +2460,119 @@ function openReadingFromComplete() {
 }
 
 function exitReading() {
-  window.speechSynthesis.cancel();
-  if (mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
+  stopStoryReading();
+  if (mediaRecorder && (mediaRecorder.state === 'recording' || mediaRecorder.state === 'paused')) stopRecording();
   showScreen('homeScreen');
   renderHome();
 }
 
-function listenStory() {
-  window.speechSynthesis.cancel();
+function toggleListenStory() {
+  const btn = document.getElementById('listenBtn');
+  if (_storyPaused) {
+    // Resume from where we left off
+    _storyPaused = false;
+    _storyPlaying = true;
+    btn.textContent = '⏸';
+    btn.className = 'rec-btn btn-listen speaking';
+    document.getElementById('recStatus').textContent = `🔊 正在朗读... (${_storyChunkIdx + 1}/${_storyChunks.length})`;
+    _playNextChunk();
+    return;
+  }
+  if (_storyPlaying) {
+    // Pause: cancel current utterance, remember position
+    window.speechSynthesis.cancel();
+    _storyPaused = true;
+    _storyPlaying = false;
+    btn.textContent = '▶';
+    btn.className = 'rec-btn btn-listen';
+    document.getElementById('recStatus').textContent = `⏸ 朗读已暂停 (${_storyChunkIdx + 1}/${_storyChunks.length})，点击 ▶ 继续`;
+    return;
+  }
+  // Start fresh: split text into chunks
   const lesson = currentReading.lesson;
-  const text = lesson.story ? lesson.story.text.replace(/\n/g, '') : lesson.sentences ? lesson.sentences.join('') : '';
+  const text = lesson.story ? lesson.story.text.replace(/\n/g, '') : lesson.sentences ? lesson.sentences.join('。') : '';
   if (!text) return;
-  document.getElementById('recStatus').textContent = '🔊 正在朗读...';
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'zh-CN'; u.rate = 0.75; u.pitch = 1.1;
-  u.onend = () => {
-    state.xp += 3; // 3x diamonds for reading
-    document.getElementById('xpLabel').textContent = state.xp;
-    saveState();
-    document.getElementById('recStatus').textContent = '朗读完毕！+3 💎 现在轮到你了 🎤';
-  };
-  window.speechSynthesis.speak(u);
+  _storyChunks = _splitIntoChunks(text);
+  _storyChunkIdx = 0;
+  _storyPlaying = true;
+  _storyPaused = false;
+  btn.textContent = '⏸';
+  btn.className = 'rec-btn btn-listen speaking';
+  document.getElementById('recStatus').textContent = `🔊 正在朗读... (1/${_storyChunks.length})`;
+  _playNextChunk();
 }
 
 async function toggleRecording() {
+  const btn = document.getElementById('recordBtn');
   if (mediaRecorder && mediaRecorder.state === 'recording') {
-    stopRecording();
-  } else {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      recChunks = []; recSeconds = 0;
-      mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.ondataavailable = e => recChunks.push(e.data);
-      mediaRecorder.onstop = () => {
-        recBlob = new Blob(recChunks, { type: 'audio/webm' });
-        stream.getTracks().forEach(t => t.stop());
-        document.getElementById('recStatus').textContent = '录音完成！可以播放或保存 💾';
-        document.getElementById('recTimer').textContent = formatTime(recSeconds);
-        document.getElementById('playBtn').disabled = false;
-        document.getElementById('saveBtn').disabled = false;
-        document.getElementById('recordBtn').className = 'rec-btn btn-record';
-      };
-      mediaRecorder.start();
-      recTimer = setInterval(() => {
-        recSeconds++;
-        document.getElementById('recTimer').textContent = formatTime(recSeconds);
-      }, 1000);
-      document.getElementById('recordBtn').className = 'rec-btn btn-record recording';
-      document.getElementById('recStatus').textContent = '🔴 录音中... 再次点击停止';
-    } catch (e) {
-      document.getElementById('recStatus').textContent = '⚠️ 无法访问麦克风，请检查浏览器权限';
-    }
+    // Pause recording
+    mediaRecorder.pause();
+    clearInterval(recTimer);
+    btn.textContent = '▶';
+    btn.className = 'rec-btn btn-record paused';
+    document.getElementById('recStatus').textContent = '⏸ 录音已暂停 · 点击 ▶ 继续，长按 ⏹ 停止';
+    return;
+  }
+  if (mediaRecorder && mediaRecorder.state === 'paused') {
+    // Resume recording
+    mediaRecorder.resume();
+    recTimer = setInterval(() => {
+      recSeconds++;
+      document.getElementById('recTimer').textContent = formatTime(recSeconds);
+    }, 1000);
+    btn.textContent = '⏸';
+    btn.className = 'rec-btn btn-record recording';
+    document.getElementById('recStatus').textContent = '🔴 录音中... 点击暂停，双击停止';
+    return;
+  }
+  // Start new recording
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recChunks = []; recSeconds = 0;
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => recChunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      recBlob = new Blob(recChunks, { type: 'audio/webm' });
+      stream.getTracks().forEach(t => t.stop());
+      document.getElementById('recStatus').textContent = '录音完成！可以播放或下载 💾';
+      document.getElementById('recTimer').textContent = formatTime(recSeconds);
+      document.getElementById('playBtn').disabled = false;
+      document.getElementById('saveBtn').disabled = false;
+      btn.textContent = '⏺';
+      btn.className = 'rec-btn btn-record';
+    };
+    mediaRecorder.start(1000); // timeslice for reliable chunks
+    recTimer = setInterval(() => {
+      recSeconds++;
+      document.getElementById('recTimer').textContent = formatTime(recSeconds);
+    }, 1000);
+    btn.textContent = '⏸';
+    btn.className = 'rec-btn btn-record recording';
+    document.getElementById('recStatus').textContent = '🔴 录音中... 点击暂停，双击停止';
+    document.getElementById('playBtn').disabled = true;
+    document.getElementById('saveBtn').disabled = true;
+  } catch (e) {
+    document.getElementById('recStatus').textContent = '⚠️ 无法访问麦克风，请检查浏览器权限';
   }
 }
 
 function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+  if (mediaRecorder && (mediaRecorder.state === 'recording' || mediaRecorder.state === 'paused')) mediaRecorder.stop();
   clearInterval(recTimer);
 }
+
+// Double-click to stop recording completely
+document.addEventListener('DOMContentLoaded', () => {
+  const recBtn = document.getElementById('recordBtn');
+  if (recBtn) {
+    recBtn.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      if (mediaRecorder && (mediaRecorder.state === 'recording' || mediaRecorder.state === 'paused')) {
+        stopRecording();
+      }
+    });
+  }
+});
 
 function playRecording() {
   if (!recBlob) return;
@@ -2434,43 +2582,45 @@ function playRecording() {
   audio.onended = () => document.getElementById('recStatus').textContent = '播放完毕！';
 }
 
-async function saveCurrentRecording() {
+function saveCurrentRecording() {
   if (!recBlob) return;
-  try {
-    await dbSaveRecording(currentReading.bookId, currentReading.lessonId, recBlob, recSeconds);
-    state.xp += 2; // 2x diamonds for making a record
-    document.getElementById('xpLabel').textContent = state.xp;
-    saveState();
-    document.getElementById('recStatus').textContent = '✅ 录音已保存！+2 💎';
-    document.getElementById('saveBtn').disabled = true;
-    loadSavedList(currentReading.bookId, currentReading.lessonId);
-  } catch (e) {
-    document.getElementById('recStatus').textContent = '保存失败，请重试。';
-  }
+  const bookId = currentReading.bookId;
+  const lessonId = currentReading.lessonId;
+  const date = new Date();
+  const dateStr = date.toLocaleDateString('zh-CN');
+  const timeStr = date.toTimeString().slice(0,5).replace(':','-');
+  const filename = `录音-第${bookId}册-第${lessonId}课-${dateStr}-${timeStr}.webm`;
+
+  // Trigger file download
+  const url = URL.createObjectURL(recBlob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  // Track in localStorage for display
+  if (!state.recordingLog) state.recordingLog = [];
+  state.recordingLog.push({ bookId, lessonId, date: dateStr, duration: recSeconds, filename });
+  state.xp += 2;
+  document.getElementById('xpLabel').textContent = state.xp;
+  saveState();
+  document.getElementById('recStatus').textContent = `✅ 录音已下载！${filename} +2 💎`;
+  document.getElementById('saveBtn').disabled = true;
+  loadSavedList(bookId, lessonId);
 }
 
-async function loadSavedList(bookId, lessonId) {
-  try {
-    const recs = await dbGetRecordings(bookId, lessonId);
-    const list = document.getElementById('savedList');
-    if (!recs.length) { list.innerHTML = ''; return; }
-    list.innerHTML = `<div style="font-size:12px;color:var(--gray-dark);font-weight:700;margin-bottom:4px">已保存录音 (${recs.length})</div>` +
-      recs.slice(-5).reverse().map(r => `
-        <div class="saved-item">
-          <span style="flex:1">${r.date} · ${formatTime(r.duration)}</span>
-          <button class="saved-play-btn" onclick="playStoredRecording('${r.id}')">▶ 播放</button>
-        </div>`).join('');
-  } catch (e) {}
-}
-
-async function playStoredRecording(id) {
-  try {
-    const rec = await dbGetById(id);
-    if (!rec) return;
-    const audio = new Audio(URL.createObjectURL(rec.blob));
-    audio.play();
-    document.getElementById('recStatus').textContent = `▶ 播放 ${rec.date} 的录音...`;
-  } catch (e) {}
+function loadSavedList(bookId, lessonId) {
+  const list = document.getElementById('savedList');
+  if (!state.recordingLog) { list.innerHTML = ''; return; }
+  const recs = state.recordingLog.filter(r => r.bookId === bookId && r.lessonId === lessonId);
+  if (!recs.length) { list.innerHTML = ''; return; }
+  list.innerHTML = `<div style="font-size:12px;color:var(--gray-dark);font-weight:700;margin-bottom:4px">已下载录音 (${recs.length})</div>` +
+    recs.slice(-5).reverse().map(r => `
+      <div class="saved-item">
+        <span style="flex:1">📁 ${r.filename || r.date} · ${formatTime(r.duration)}</span>
+      </div>`).join('') +
+    `<div style="font-size:11px;color:var(--gray);margin-top:6px;text-align:center">💡 录音保存在浏览器的"下载"文件夹中<br>建议创建一个「录音」文件夹来整理</div>`;
 }
 
 function formatTime(s) {
